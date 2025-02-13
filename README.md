@@ -7,4 +7,4 @@
 > `dnn` provides environment for **training** of events using DNN.\
 > `scripts`, and `utils` folders are archiving scripts & functions.
 > `cutflow` provides cut and count results, from importing pre-trained DNN models.
-> `external`, and `classes` are libraries for reading Delphes objects such as Jets.
+> `external`, and `classes` are libraries for reading [Delphes](https://github.com/delphes/delphes) objects  such as Jet.PT.
