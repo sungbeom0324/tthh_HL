@@ -2,7 +2,7 @@
 
 ### About the Repository
 > In this repository, analyze tools for [CMS AN-2024-209 (internal)](https://icms.cern.ch/tools/publications/notes/entries/AN/2024) are stored.\
-> RDataFrame (C++) and TensorFlow DNN (python) are the core api.
+> RDataFrame (C++) and TensorFlow (python) are the core api.
 > 
 > `skimmer` provides **skimming or processing** Delphes MC events.\
 > `palette.py` makes **plots**.\
