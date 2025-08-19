@@ -11,3 +11,5 @@
 > `utils` folder is archiving useful functions. \
 > `cutflow` provides cut-and-count results, from importing pre-trained DNN models. \
 > `external`, and `classes` are libraries for reading [Delphes](https://github.com/delphes/delphes) objects  such as "Jet.PT".
+>
+> Samples are genreated by https://github.com/sungbeom0324/MG5_MassProduction.git 
