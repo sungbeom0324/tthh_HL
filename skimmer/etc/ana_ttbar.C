@@ -1,0 +1,241 @@
+#ifdef __CLING__
+R__LOAD_LIBRARY(libDelphes)
+#include "../classes/DelphesClasses.h"
+#include "../external/ExRootAnalysis/ExRootTreeReader.h"
+#endif
+#include <vector>
+#include <algorithm>
+
+#include "TTree.h"
+#include "TFile.h"
+
+#include "ROOT/RDataFrame.hxx"
+#include "ROOT/RVec.hxx"
+#include <TMath.h>
+
+#include "../utils/utility.h"
+
+// MODIFY!!
+void ana_ttbar(std::string channel, std::string outdir="../skimmed/"){
+    gSystem->Load("libDelphes");
+
+    auto infile = "/data1/users/stiger97/HLLHC_tthh/DATA_new/parking_test/"+channel+"/*_1.root";
+    std::cout << infile << std::endl;
+    std::cout << outdir << std::endl;
+    auto treename = "Delphes";
+    auto _df = ROOT::RDataFrame(treename, infile);
+    
+    ///////////////
+    // Constants //
+    ///////////////
+    auto df0 = _df.Define("Lep1_m", "float(0)")
+                  .Define("Lep2_m", "float(0)")
+                  .Define("drmax1", "float(0.15)").Define("drmax2", "float(0.4)")
+                  .Define("ParticlePID", {"Particle.PID"})
+                  .Define("ParticlePT", {"Particle.PT"})
+                  .Define("D1", {"Particle.D1"})
+                  .Define("D2", {"Particle.D2"})
+                  .Define("GenJetBTag", {"GenJet.BTag"}).Define("nGenbJet", "Sum(GenJetBTag)")
+                  .Define("JetBTag", {"Jet.BTag"}).Define("nbJet", "Sum(JetBTag)")
+                  .Define("GenMissingET_met", "GenMissingET.MET")
+                  .Define("GenMissingET_eta", "GenMissingET.Eta")
+                  .Define("GenMissingET_phi", "GenMissingET.Phi")
+                  .Define("isLast", ::isLast, {"Particle.PID", "Particle.D1", "Particle.D2"})
+                  .Define("isAdd", ::isAdd, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2"})
+                  .Define("Top", "abs(Particle.PID) == 6 && isLast").Define("nTop", "Sum(Top)")
+                  .Define("Higgs", "abs(Particle.PID) == 25 && isLast").Define("nHiggs", "Sum(Higgs)")
+                  .Define("W", "abs(Particle.PID) == 24 && isLast").Define("nW", "Sum(W)")
+                  .Define("GenbQuark", "abs(Particle.PID) == 5 && isLast").Define("nGenbQ", "Sum(GenbQuark)")
+                  .Define("GenAddbQuark", "abs(Particle.PID) == 5 && isLast && isAdd").Define("nGenAddbQ", "Sum(GenAddbQuark)")
+                  .Define("GencQuark", "abs(Particle.PID) == 4 && isLast");
+                  //.Filter("nGenbQ == 4")  // CAUTION. THIS OPTION IS ONLY TTBB
+
+    //////////////
+    // Particle //
+    //////////////
+    auto df1 = df0.Define("ptc_idx", ::FinalParticle_idx, {"Particle.PID", "Particle.PT", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Top", "Higgs"})
+                  .Define("Top1", "ptc_idx[0]")
+                  .Define("Gbft1", "ptc_idx[1]")
+                  .Define("Top2", "ptc_idx[2]")
+                  .Define("Gbft2", "ptc_idx[3]")
+                  .Define("Higgs1", "ptc_idx[4]")
+                  .Define("Gb1fh1", "ptc_idx[5]")
+                  .Define("Gb2fh1", "ptc_idx[6]")
+                  .Define("Higgs2", "ptc_idx[7]")
+                  .Define("Gb1fh2", "ptc_idx[8]")
+                  .Define("Gb2fh2", "ptc_idx[9]")
+                  // Particle four-vector
+                  .Define("b1qfh1_pt", "Particle.PT[Gb1fh1]").Define("b1qfh1_eta", "Particle.Eta[Gb1fh1]").Define("b1qfh1_phi", "Particle.Phi[Gb1fh1]").Define("b1qfh1_m", "Particle.Mass[Gb1fh1]")
+                  .Define("b2qfh1_pt", "Particle.PT[Gb2fh1]").Define("b2qfh1_eta", "Particle.Eta[Gb2fh1]").Define("b2qfh1_phi", "Particle.Phi[Gb2fh1]").Define("b2qfh1_m", "Particle.Mass[Gb2fh1]")
+                  .Define("b1qfh2_pt", "Particle.PT[Gb1fh2]").Define("b1qfh2_eta", "Particle.Eta[Gb1fh2]").Define("b1qfh2_phi", "Particle.Phi[Gb1fh2]").Define("b1qfh2_m", "Particle.Mass[Gb1fh2]")
+                  .Define("b2qfh2_pt", "Particle.PT[Gb2fh2]").Define("b2qfh2_eta", "Particle.Eta[Gb2fh2]").Define("b2qfh2_phi", "Particle.Phi[Gb2fh2]").Define("b2qfh2_m", "Particle.Mass[Gb2fh2]")
+                  .Define("Q_Higgs1_var", ::GenHiggsReco, {"b1qfh1_pt", "b1qfh1_eta", "b1qfh1_phi", "b1qfh1_m", "b2qfh1_pt", "b2qfh1_eta", "b2qfh1_phi", "b2qfh1_m"})
+                  .Define("Q_Higgs2_var", ::GenHiggsReco, {"b1qfh2_pt", "b1qfh2_eta", "b1qfh2_phi", "b1qfh2_m", "b2qfh2_pt", "b2qfh2_eta", "b2qfh2_phi", "b2qfh2_m"})
+                  .Define("Q_Higgs1_m", "Q_Higgs1_var[3]")
+                  .Define("Q_Higgs2_m", "Q_Higgs2_var[3]")
+                  .Define("Q_Higgs_m", ::ConcatFloat, {"Q_Higgs1_m", "Q_Higgs2_m"})
+                  .Define("FH_SL_DL", ::FH_SL_DL, {"Particle.PID", "Particle.M1", "Particle.M2", "Particle.D1", "Particle.D2", "Top1", "Top2"});
+
+    ////////////
+    // GenJet //
+    ////////////
+    auto df2 = df1.Define("GenJet_dR", ::all_dR, {"GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
+                  .Define("GenJet_Avg", ::Avg, {"GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
+                  .Define("GenJet_dr_avg", "GenJet_Avg[0]")
+                  .Define("GenJet_dEta_avg", "GenJet_Avg[1]")
+                  .Define("GenJet_dPhi_avg", "GenJet_Avg[2]")
+
+    ////////////////////////              
+    // Particle_To_GenJet //                            e.g. Naming : Gb1jfh2 = Gen b1Jet from Higgs2
+    ////////////////////////
+                  .Define("Gbjft1", ::dRMatching_idx, {"Gbft1", "drmax2", "Particle.PT", "Particle.Eta", "Particle.Phi", "Particle.Mass", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
+                  .Define("Gbjft2", ::dRMatching_idx, {"Gbft2", "drmax2", "Particle.PT", "Particle.Eta", "Particle.Phi", "Particle.Mass", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
+                  .Define("Gbj1fh1", ::dRMatching_idx, {"Gb1fh1", "drmax2", "Particle.PT", "Particle.Eta", "Particle.Phi", "Particle.Mass", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
+                  .Define("Gbj2fh1", ::dRMatching_idx, {"Gb2fh1", "drmax2", "Particle.PT", "Particle.Eta", "Particle.Phi", "Particle.Mass", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
+                  .Define("Gbj1fh2", ::dRMatching_idx, {"Gb1fh2", "drmax2", "Particle.PT", "Particle.Eta", "Particle.Phi", "Particle.Mass", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"})
+                  .Define("Gbj2fh2", ::dRMatching_idx, {"Gb2fh2", "drmax2", "Particle.PT", "Particle.Eta", "Particle.Phi", "Particle.Mass", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass"});
+
+    ////////////////////
+    // GenJet_To_RECO //
+    ////////////////////
+    auto df3 = df2.Define("bjft1", ::dRMatching_idx, {"Gbjft1", "drmax2", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass", "Jet.PT", "Jet.Eta", "Jet.Phi", "Jet.Mass"})
+                  .Define("bjft2", ::dRMatching_idx, {"Gbjft2", "drmax2", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass", "Jet.PT", "Jet.Eta", "Jet.Phi", "Jet.Mass"})
+                  .Define("bj1fh1", ::dRMatching_idx, {"Gbj1fh1", "drmax2", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass", "Jet.PT", "Jet.Eta", "Jet.Phi", "Jet.Mass"})
+                  .Define("bj2fh1", ::dRMatching_idx, {"Gbj2fh1", "drmax2", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass", "Jet.PT", "Jet.Eta", "Jet.Phi", "Jet.Mass"})
+                  .Define("bj1fh2", ::dRMatching_idx, {"Gbj1fh2", "drmax2", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass", "Jet.PT", "Jet.Eta", "Jet.Phi", "Jet.Mass"})
+                  .Define("bj2fh2", ::dRMatching_idx, {"Gbj2fh2", "drmax2", "GenJet.PT", "GenJet.Eta", "GenJet.Phi", "GenJet.Mass", "Jet.PT", "Jet.Eta", "Jet.Phi", "Jet.Mass"})
+                  .Define("nMatchedbJet", ::NumberOf, {"bj1fh1", "bj2fh1", "bj1fh2", "bj2fh2", "bjft1", "bjft2"})
+                  .Define("nMatchedbJet_FromHiggs1", "nMatchedbJet[0]")
+                  .Define("nMatchedbJet_FromHiggs2", "nMatchedbJet[1]")
+                  .Define("nMatchedbJet_FromTop1", "nMatchedbJet[2]")
+                  .Define("nMatchedbJet_FromTop2", "nMatchedbJet[3]")
+                  .Define("nMatchedbJet_all", "nMatchedbJet[4]")
+                  .Define("b1JetFromHiggs1_pt", ::idx_var, {"Jet.PT", "bj1fh1"})
+                  .Define("b2JetFromHiggs1_pt", ::idx_var, {"Jet.PT", "bj2fh1"})
+                  .Define("b1JetFromHiggs2_pt", ::idx_var, {"Jet.PT", "bj1fh2"})
+                  .Define("b2JetFromHiggs2_pt", ::idx_var, {"Jet.PT", "bj2fh2"})
+                  .Define("bJetFromTop1_pt", ::idx_var, {"Jet.PT", "bjft1"})
+                  .Define("bJetFromTop2_pt", ::idx_var, {"Jet.PT", "bjft2"});
+
+    //////////
+    // RECO //
+    // ///////
+    auto df4 = df3.Define("goodJet", "Jet.PT>=30 && abs(Jet.Eta)<3.0")
+                  .Define("goodElectron", "Electron.PT>=23 && abs(Electron.Eta)<3.0")
+                  .Define("goodLooseMuon", "MuonLoose.PT>=17 && abs(MuonLoose.Eta)<2.8") //
+                  .Define("Jet_pt", "Jet.PT[goodJet]")
+                  .Define("Jet_eta", "Jet.Eta[goodJet]")
+                  .Define("Jet_phi", "Jet.Phi[goodJet]")
+                  .Define("Jet_m", "Jet.Mass[goodJet]")
+                  .Define("Jet_E", ::GetE, {"Jet_pt", "Jet_eta", "Jet_phi", "Jet_m"})
+                  .Define("Jet_btag", "(Jet.BTag[goodJet] & (1 << 0)) != 0") // bit0 = DeepJet_Loose
+                  .Define("Jet_btagTight", "(Jet.BTag[goodJet] & (1 << 2)) != 0") // bit0 = DeepJet_Loose
+                  .Define("Jet_btagMedium", "(Jet.BTag[goodJet] & (1 << 3)) != 0") // bit0 = DeepJet_Loose
+                  .Define("Jet_btagLoose", "(Jet.BTag[goodJet] & (1 << 4)) != 0") // bit0 = DeepJet_Loose
+                  .Redefine("Jet_size", "Sum(goodJet)")
+                  .Redefine("JetAK8_size", "JetAK8_size")
+                  .Define("bJet_pt", "Jet_pt[Jet_btag]")
+                  .Define("bJet_eta", "Jet_eta[Jet_btag]")
+                  .Define("bJet_phi", "Jet_phi[Jet_btag]")
+                  .Define("bJet_m", "Jet_m[Jet_btag]")
+                  .Define("bJet_E", ::GetE, {"bJet_pt", "bJet_eta", "bJet_phi", "bJet_m"})
+                  .Define("bJet_size", "Sum(Jet_btag)")
+                  .Define("bJetTight_size", "Sum(Jet_btagTight)")
+                  .Define("bJetMedium_size", "Sum(Jet_btagMedium)")
+                  .Define("bJetLoose_size", "Sum(Jet_btagLoose)")
+
+                  // lepton
+                  .Define("Muon_pt", "MuonLoose.PT[goodLooseMuon]") 
+                  .Define("Muon_eta", "MuonLoose.Eta[goodLooseMuon]") 
+                  .Define("Muon_phi", "MuonLoose.Phi[goodLooseMuon]")
+                  .Define("Muon_t", "MuonLoose.T[goodLooseMuon]")
+                  .Define("nMuon", "Sum(goodLooseMuon)")
+                  .Define("Muon_charge", "MuonLoose.Charge[goodLooseMuon]")
+                  .Define("Electron_pt", "Electron.PT[goodElectron]")
+                  .Define("Electron_eta", "Electron.Eta[goodElectron]")
+                  .Define("Electron_phi", "Electron.Phi[goodElectron]")
+                  .Define("Electron_t", "Electron.T[goodElectron]")
+                  .Define("nElectron", "Sum(goodElectron)")
+                  .Define("Electron_charge", "Electron.Charge[goodElectron]")
+                  .Define("Lep_size", "nMuon + nElectron")
+                  .Define("Lep_4vec", ::TwoLeptons, {"Muon_pt", "Muon_eta", "Muon_phi", "Muon_t", "Muon_charge", "Electron_pt", "Electron_eta", "Electron_phi", "Electron_t", "Electron_charge"})
+                  .Define("Lep1_pt", "Lep_4vec[0]")
+                  .Define("Lep1_eta", "Lep_4vec[1]")
+                  .Define("Lep1_phi", "Lep_4vec[2]")
+                  .Define("Lep1_t", "Lep_4vec[3]")
+                  .Define("Lep1_ch", "Lep_4vec[4]")
+                  .Define("Lep2_pt", "Lep_4vec[5]")
+                  .Define("Lep2_eta", "Lep_4vec[6]")
+                  .Define("Lep2_phi", "Lep_4vec[7]")
+                  .Define("Lep2_t", "Lep_4vec[8]")
+                  .Define("Lep2_ch", "Lep_4vec[9]")
+                  .Define("l1l2_dr", ::dR2, {"Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_m", "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_m"})
+                  .Define("l1l2_m", ::RecoMass2, {"Lep1_pt", "Lep1_eta", "Lep1_phi", "Lep1_m", "Lep2_pt", "Lep2_eta", "Lep2_phi", "Lep2_m"})
+                  .Define("SS_OS_DL", "Lep1_ch*Lep2_ch")
+                  .Define("MET_E", "MissingET.MET")
+                  .Define("MET_Eta", "MissingET.Eta")
+                  .Define("MET_Phi", "MissingET.Phi")
+                  .Define("j_ht", ::Ht, {"Jet_pt"})
+                  // You Must Use [bi_Tag] Before Filter // 
+
+                  .Define("bJet_pt_scheme", ::pt_scheme, {"b1JetFromHiggs1_pt", "b2JetFromHiggs1_pt", "b1JetFromHiggs2_pt", "b2JetFromHiggs2_pt", "bJetFromTop1_pt", "bJetFromTop2_pt"})
+                  .Define("isMatchable", ::Matchable, {"bJet_pt", "b1JetFromHiggs1_pt", "b2JetFromHiggs1_pt", "b1JetFromHiggs2_pt", "b2JetFromHiggs2_pt", "bJetFromTop1_pt", "bJetFromTop2_pt"})
+
+                  // Jet, bJet in pT order.
+                  .Define("Jet1_pt", "Jet_pt[0]").Define("Jet1_eta", "Jet_eta[0]").Define("Jet1_phi", "Jet_phi[0]").Define("Jet1_m", "Jet_m[0]")
+                  .Define("Jet2_pt", "Jet_pt[1]").Define("Jet2_eta", "Jet_eta[1]").Define("Jet2_phi", "Jet_phi[1]").Define("Jet2_m", "Jet_m[1]")
+                  .Define("Jet3_pt", "Jet_pt[2]").Define("Jet3_eta", "Jet_eta[2]").Define("Jet3_phi", "Jet_phi[2]").Define("Jet3_m", "Jet_m[2]")
+                  .Define("Jet4_pt", "Jet_pt[3]").Define("Jet4_eta", "Jet_eta[3]").Define("Jet4_phi", "Jet_phi[3]").Define("Jet4_m", "Jet_m[3]")
+                  .Define("Jet5_pt", "Jet_pt[4]").Define("Jet5_eta", "Jet_eta[4]").Define("Jet5_phi", "Jet_phi[4]").Define("Jet5_m", "Jet_m[4]")
+                  .Define("bJet1_pt", "bJet_pt[0]").Define("bJet1_eta", "bJet_eta[0]").Define("bJet1_phi", "bJet_phi[0]").Define("bJet1_m", "bJet_m[0]")
+                  .Define("bJet2_pt", "bJet_pt[1]").Define("bJet2_eta", "bJet_eta[1]").Define("bJet2_phi", "bJet_phi[1]").Define("bJet2_m", "bJet_m[1]")
+                  .Define("bJet3_pt", "bJet_pt[2]").Define("bJet3_eta", "bJet_eta[2]").Define("bJet3_phi", "bJet_phi[2]").Define("bJet3_m", "bJet_m[2]")
+                  .Define("bJet4_pt", "bJet_pt[3]").Define("bJet4_eta", "bJet_eta[3]").Define("bJet4_phi", "bJet_phi[3]").Define("bJet4_m", "bJet_m[3]")
+                  .Define("bJet5_pt", "bJet_pt[4]").Define("bJet5_eta", "bJet_eta[4]").Define("bJet5_phi", "bJet_phi[4]").Define("bJet5_m", "bJet_m[4]");
+
+    ////////////////
+    // Chi2 Higgs //
+    ////////////////
+    auto df5 = df4.Define("Chi2Higgs", ::RecoHiggs, {"bJet_pt", "bJet_eta", "bJet_phi", "bJet_m", "b1JetFromHiggs1_pt", "b2JetFromHiggs1_pt", "b1JetFromHiggs2_pt", "b2JetFromHiggs2_pt"})
+                // Higgs1
+                .Define("chi_Higgs1_pt", "Chi2Higgs[0]").Define("chi_Higgs1_eta", "Chi2Higgs[1]").Define("chi_Higgs1_phi", "Chi2Higgs[2]").Define("chi_Higgs1_m", "Chi2Higgs[3]")
+                .Define("Matched_idx1_Higgs1", "Chi2Higgs[4]")
+                .Define("Matched_idx2_Higgs1", "Chi2Higgs[5]")
+                .Define("Correct_Chi_Higgs1", "Chi2Higgs[6]")
+                .Define("Chi_min_Higgs1", "Chi2Higgs[7]")
+                // Higgs2
+                .Define("chi_Higgs2_pt", "Chi2Higgs[8]").Define("chi_Higgs2_eta", "Chi2Higgs[9]").Define("chi_Higgs2_phi", "Chi2Higgs[10]").Define("chi_Higgs2_m", "Chi2Higgs[11]")
+                .Define("Matched_idx1_Higgs2", "Chi2Higgs[12]")
+                .Define("Matched_idx2_Higgs2", "Chi2Higgs[13]")
+                .Define("Correct_Chi_Higgs2", "Chi2Higgs[14]")
+                .Define("Chi_min_Higgs2", "Chi2Higgs[15]")
+                .Define("Final_Chi2", "Chi2Higgs[16]");
+
+    ///////////////////////
+    //     Labeling      //  
+    ///////////////////////
+    auto df6= df5.Define("bJetFrom", ::bJetFrom, {"bJet_pt", "b1JetFromHiggs1_pt", "b2JetFromHiggs1_pt", "b1JetFromHiggs2_pt", "b2JetFromHiggs2_pt", "bJetFromTop1_pt", "bJetFromTop2_pt"})
+                  .Define("b1", "bJetFrom[0]")
+                  .Define("b2", "bJetFrom[1]")
+                  .Define("b3", "bJetFrom[2]")
+                  .Define("b4", "bJetFrom[3]")
+                  .Define("b5", "bJetFrom[4]")
+                  .Define("nMatched_bFromTop", "bJetFrom[5]")
+                  .Define("nMatched_bFromHiggs", "bJetFrom[6]")
+                  .Define("nMatched_bJet", "bJetFrom[7]")
+                  .Define("bCat_higgs5_2Mat", ::bCat_higgs5_2Mat, {"b1", "b2", "b3", "b4", "b5"})
+                  .Define("bCat_higgs5_2Mat_multi", ::bCat_higgs5_2Mat_multi, {"b1", "b2", "b3", "b4", "b5"})
+                  .Define("bCat_higgs5_2Mat_1", "bCat_higgs5_2Mat_multi[0]")
+                  .Define("bCat_higgs5_2Mat_2", "bCat_higgs5_2Mat_multi[1]")
+                  .Define("bCat_top_1", ::bCat_top_1, {"b1", "b2", "b3", "b4", "b5"});
+                //.Filter("nGenAddbQ <= 2");  // CAUTION. THIS OPTION IS ONLY TTBB
+
+    std::initializer_list<std::string> variables = {
+    "FH_SL_DL",
+    "Lep_size", "SS_OS_DL", "MET_E", "bJet_size", "Jet_size", "j_ht"
+};
+
+    // MODIFY!!
+    df6.Snapshot(treename, outdir+ "TT_" + channel + ".root", variables); 
+    std::cout << "done" << std::endl; 
+}

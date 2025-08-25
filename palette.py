@@ -1,275 +1,105 @@
 # Draw histograms with modules. conda activate py36 
+import sys; sys.path.insert(0, "/home/stiger97/github/tthh")
 from utils.drawHistoModules import *
-from utils.drawHistoStacks import *
 
 # in multiple files. # modify #
-indir = "/home/stiger97/github/tthh_full_14TeV/skimmed/"
-
+indir = "/home/stiger97/github/tthh/skimmed/test/"
 PRE = "test"
 tree = "Delphes"
-
-
-xsecs = { # inclusive, NO selection # modify
-    "ttHH": 0.948,
-    "ttH": 612,
-    "ttbbH": 15.6,
-    "ttZH": 1.71,
-    "ttVV": 13.52,
-    "ttbbV": 27.36,
-    "ttbb": 1549 * 0.912,
-    "ttbbbb": 370,
-    "tttt": 11.81, 
-}
-'''
-xsecs_ss2l = { # SS2l Effective cross section selection # "inc_x * S5/S0"
-    "ttHH": 0.013116027,
-    "ttH": 2.696503449,
-    "ttbbH": 0.138963541,
-    "ttZH": 0.015254384,
-    "ttVV": 0.161158763,
-    "ttbbV": 0.116997714,
-    "ttbb": 2.500790626,
-    "ttbbbb": 0.674018466,
-    "tttt": 0.421263333
-}
-xsecs_os2l = { # OS2l Effective cross section # "inc_x * S5/S0"
-    "ttHH": 0.008147,
-    "ttH": 0.890422,
-    "ttbbH": 0.135407,
-    "ttZH": 0.009705,
-    "ttVV": 0.022609,
-    "ttbbV": 0.04141,
-    "ttbb": 1.817535,
-    "ttbbbb": 0.817399,
-    "tttt": 0.252733,
-    "tt": 36.138
-}
-'''
-
 lumi = 3000  # Luminosity in fb^-1
 
-# Temporary
-drawHistoSame(indir, tree, "mass of Higgs1 (Chi)", "m_{H}, min \chi^{2} (GeV)", "Normalized Events", "chi_Higgs1_m", 20, 0, 450, PRE, "ss2l", 1.3)
-Stack_Filter(indir, tree, "mass of Higgs1 (Chi)", "m_{H}, min \chi^{2} (GeV)", "Normalized Events", "chi_Higgs1_m", 20, 0, 450, PRE, 3, xsecs, lumi, signal_weight=1, tail="ChiHiggsMass")
+draw2DMatrix_HH_vs_TopDecay_norm(
+    indir + "test_tthh_inc.root",
+    "Delphes",
+    xtitle="t#bar{t} Decay",
+    ytitle="HH Decay",
+    PRE=PRE,
+    tag="S4"
+)
 
-# During Selection
-'''
-Stack_Filter(indir, tree, "Number of Leptons", "Number of leptons", "Events", "Lep_size", 5, 0, 5, PRE, 3, xsecs, lumi, signal_weight=1, tail="S1")
-Stack_Filter(indir, tree, "Sign of two leptons", "Multiplication of two lepton charges", "Events", "SS_OS_DL", 5, -2, 3, PRE, 3, xsecs, lumi, signal_weight=1, tail="S2")
-Stack_Filter(indir, tree, "Missing Transverse Energy", "MET (GeV)", "Events", "MET_E", 10, 0, 100, PRE, 3, xsecs, lumi, signal_weight=1, tail="S3")
-Stack_Filter(indir, tree, "Number of bJets", "Number of b jets", "Events", "bJet_size", 8, 2, 10, PRE, 3, xsecs, lumi, signal_weight=1, tail="S4")
-Stack_Filter(indir, tree, "Scalar sum of Jet pT", "H^{jet}_{T}", "Events", "j_ht", 15, 0, 1500, PRE, 3, xsecs, lumi, signal_weight=1, tail="S5")
-drawHistoSame(indir, tree, "Number of b jets", "Number of b jets", "Events", "bJet_size", 10, 0, 10, PRE, "test")
-drawHistoSame(indir, tree, "Number of leptons", "Number of leptons", "Events", "Lep_size", 5, 0, 5, PRE, "test")
-'''
-#drawHistoSame(indir, tree, "Number of Leptons", "Number of leptons", "Normalzied Events", "Lep_size", 5, 0, 5, PRE, "S1", 1.3)
-#drawHistoSame(indir, tree, "Sign of two leptons", "Multiplication of charges of two leptons", "Normalized Events", "SS_OS_DL", 5, -2, 3, PRE, "S2", 1.8)
-#drawHistoSame(indir, tree, "Missing Transverse Energy", "MET (GeV)", "Normalized Events", "MET_E", 10, 0, 500, PRE, "S3", 1.6)
-#drawHistoSame(indir, tree, "Number of bJets", "Number of b jets", "Normalized Events", "bJet_size", 10, 0, 10, PRE, "S4", 1.7)
-#drawHistoSame(indir, tree, "Number of jets", "Number of jets", "Normalized Events", "Jet_size", 15, 0, 15, PRE, "S4", 1.5)
-#drawHistoSame(indir, tree, "Scalar sum of Jet pT", "H^{jet}_{T} (GeV)", "Normalized Events", "j_ht", 19, 0, 1900, PRE, "S5", 1.8)
+# S0~3
+#drawHistoSame(indir, tree, "Lep_size", "Number of leptons", "Normalized Events", "Lep_size", 5, 0, 5, PRE, "S0", yscale=1.3)
+#drawHistoSame(indir, tree, "SS_OS_DL", "Electric charges of a lepton pair", "Normalzied Events", "SS_OS_DL", 5, -2, 3, PRE, "S1", yscale=1.3)
+#drawHistoSame(indir, tree, "MET_E", "E^{Miss}_{T} (GeV)", "Normalized Events", "MET_E", 30, 0, 300, PRE, "S2", yscale=1.3)
+#drawHistoSame(indir, tree, "Jet_size", "Number of jets", "Normalzied Events", "Jet_size", 15, 0, 15, PRE, "S3", yscale=1.3)
+#drawHistoSame(indir, tree, "bJet_size", "Number of bjets", "Normalized Events", "bJet_size", 10, 0, 10, PRE, "S3", yscale=1.3)
 
-'''
-# After Selection
-Stack_Filter(indir, tree, "Number of bJets", "Number of b jets", "Events", "bJet_size", 8, 2, 10, PRE, 3, xsecs, lumi, signal_weight=1) # ymax_15
-Stack_Filter(indir, tree, "Number of AK8Jets", "Number of AK8 jets", "Events", "JetAK8_size", 6, 0, 6, PRE, 3, xsecs, lumi, signal_weight=1) # ymax_15
-Stack_Filter(indir, tree, "H_T of bJets", "H^{bjet}_{T}", "Events", "b_ht", 15, 0, 1500, PRE, 3, xsecs, lumi, signal_weight=1) # ymax_15
-Stack_Filter(indir, tree, "H_T of Jets", "H^{jet}_{T}", "Events", "j_ht", 17, 200, 1900, PRE, 3, xsecs, lumi, signal_weight=1)# ymax_15
-Stack_Filter(indir, tree, "Avg dR_bb", "\DeltaR^{avg}_{bb}", "Events", "bb_avg_dr", 14, 0.5, 4, PRE, 3, xsecs, lumi, signal_weight=1)# ymax_15
-Stack_Filter(indir, tree, "Min dR_bb", "\DeltaR^{min}_{bb}", "Events", "bb_min_dr", 10, 0.5, 3.0, PRE, 3, xsecs, lumi, signal_weight=1)# ymax_15
-Stack_Filter(indir, tree, "pT of bjet1", "bjet1 p_{T}", "Events", "bJet1_pt", 10, 0, 500, PRE, 3, xsecs, lumi, signal_weight=1)# ymax_15
-Stack_Filter(indir, tree, "pT of bjet2", "bjet2 p_{T}", "Events", "bJet2_pt", 10, 0, 500, PRE, 3, xsecs, lumi, signal_weight=1)# ymax_15
-Stack_Filter(indir, tree, "pT of bjet3", "bjet3 p_{T}", "Events", "bJet3_pt", 10, 0, 500, PRE, 3, xsecs, lumi, signal_weight=1)# ymax_15
-Stack_Filter(indir, tree, "pT of Lep1", "Lep1 p_{T}", "Events", "Lep1_pt", 10, 0, 500, PRE, 3, xsecs, lumi, signal_weight=1)# ymax_15
-Stack_Filter(indir, tree, "pT of Lep2", "Lep2 p_{T}", "Events", "Lep2_pt", 20, 0, 500, PRE, 3, xsecs, lumi, signal_weight=1)# ymax_15
-'''
+######## S4 #######################
+#drawHistoStack_Group(indir, tree, "Number of jets", "Number of jets", "Events", "Jet_size", 10, 4, 14, PRE, "S4", yscale=1.9, signal_scale=584)
+#drawHistoStack_Group(indir, tree, "Scalar sum of Jet pT", "H^{jet}_{T} (GeV)", "Events", "j_ht", 20, 0, 2000, PRE, "S4")
+#drawHistoStack_Group(indir, tree, "Lep1 pT", "p^{l1}_{T} (GeV)", "Events", "Lep1_pt", 18, 0, 360, PRE, "S4")
+#drawHistoStack_Group(indir, tree, "Lep2 pT", "p^{l2}_{T} (GeV)", "Events", "Lep2_pt", 8, 0, 160, PRE, "S4")
+#drawHistoStack_Group(indir, tree, "l1l2_dr", "\DeltaR_{ll}", "Events", "l1l2_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "l1l2_m", "m_{ll} (GeV)", "Events", "l1l2_m", 25, 0, 500, PRE, "S4")
+#drawHistoStack_Group(indir, tree, "bJet_cent", "bJet centrality", "Events", "b_cent", 20, 0, 1, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "Jet_cent", "Jet centrality", "Events", "Jet_cent", 20, 0, 1, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "bJet1 pT", "p^{b1}_{T} (GeV)", "Events", "bJet1_pt", 50, 0, 500, PRE, "S4")
+#drawHistoStack_Group(indir, tree, "bJet2 pT", "p^{b2}_{T} (GeV)", "Events", "bJet2_pt", 40, 0, 400, PRE, "S4")
+#drawHistoStack_Group(indir, tree, "JetAK8_size", "Number of AK8 Jet", "Events", "JetAK8_size", 6, 0, 6, PRE, "S4")
 
-### SS2l ###
+#drawHistoStack_Group(indir, tree, "Missing Transverse Energy", "MET (GeV)", "Events", "MET_E", 27, 30, 300, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "FH_SL_DL", "FH_SL_DL", "Events", "FH_SL_DL", 5, -1, 4, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "bJet3_pt", "bJet3_pt", "Events", "bJet3_pt", 30, 0, 300, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "bJet4_pt", "bJet4_pt", "Events", "bJet4_pt", 20, 0, 200, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "bb_avg_dr", "\DeltaR^{avg}_{bb}", "Events", "bb_avg_dr", 18, 0, 3.6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "bb_min_dr", "bb_min_dr", "Events", "bb_min_dr", 20, 0, 4, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "bb_max_dr", "bb_max_dr", "Events", "bb_max_dr", 20, 0, 4, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "bJet_size", "bJet_size", "Events", "bJet_size", 5, 4, 9, PRE, "S4", yscale=1.9)
+
+#drawHistoStack_Group(indir, tree, "l1b1_dr", "\DeltaR_{l1b1}", "Events", "l1b1_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "l1b2_dr", "\DeltaR_{l1b1}", "Events", "l1b2_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "l1b3_dr", "\DeltaR_{l1b1}", "Events", "l1b3_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "l1b4_dr", "\DeltaR_{l1b1}", "Events", "l1b4_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "l2b1_dr", "\DeltaR_{l1b1}", "Events", "l2b1_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "l2b2_dr", "\DeltaR_{l1b1}", "Events", "l2b2_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "l2b3_dr", "\DeltaR_{l1b1}", "Events", "l2b3_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "l2b4_dr", "\DeltaR_{l1b1}", "Events", "l2b4_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "b1b2_dr", "\DeltaR_{b1b2}", "Events", "b1b2_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "b1b3_dr", "\DeltaR_{b1b3}", "Events", "b1b3_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "b1b4_dr", "\DeltaR_{b1b4}", "Events", "b1b4_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "b2b3_dr", "\DeltaR_{b2b3}", "Events", "b2b3_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "b2b4_dr", "\DeltaR_{b2b4}", "Events", "b2b4_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
+#drawHistoStack_Group(indir, tree, "b3b4_dr", "\DeltaR_{b3b4}", "Events", "b3b4_dr", 30, 0, 6, PRE, "S4", yscale=1.9)
 '''
-# S0 # None
-drawHistoSame(indir, tree, "Number of leptons", "Number of leptons", "Normalized Events", "Lep_size", 5, 0, 5, PRE, "ss2l_S0", 1.3)
-# S1 #
-drawHistoSame(indir, tree, "Sign of two leptons", "Multiplication of charges of two leptons", "Normalized Events", "SS_OS_DL", 5, -2, 3, PRE, "ss2l_S1", 1.4)
-# S2 #
-drawHistoSame(indir, tree, "Missing Transverse Energy", "MET (GeV)", "Normalized Events", "MET_E", 20, 0, 500, PRE, "ss2l_S2", 1.4)
-# S3 #
-drawHistoSame(indir, tree, "Number of jets", "Number of jets", "Normalized Events", "Jet_size", 15, 0, 15, PRE, "ss2l_S3", 1.5)
-drawHistoSame(indir, tree, "Number of bJets", "Number of b jets", "Normalized Events", "bJet_size", 10, 0, 10, PRE, "ss2l_S3", 1.4)
-# S4 #
-drawHistoSame(indir, tree, "Scalar sum of Jet pT", "H^{jet}_{T} (GeV)", "Normalized Events", "j_ht", 20, 0, 2000, PRE, "ss2l_S4", 1.4)
-drawHistoSame(indir, tree, "pT of bjet1", "bjet1 p_{T} (GeV)", "Normalized Events", "bJet1_pt", 18, 0, 900, PRE, "ss2l_S4", 1.3)
-drawHistoSame(indir, tree, "pT of bjet2", "bjet2 p_{T} (GeV)", "Normalized Events", "bJet2_pt", 20, 0, 500, PRE, "ss2l_S4", 1.4)
-drawHistoSame(indir, tree, "pT of bjet3", "bjet3 p_{T} (GeV)", "Normalized Events", "bJet3_pt", 15, 0, 300, PRE, "ss2l_S4", 1.4)
-'''
-'''
-# S5 # Final
-drawHistoSame(indir, tree, "Number of Jets", "Number of jets", "Normalized Events", "Jet_size", 12, 3, 15, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Number of bJets", "Number of b jets", "Normalized Events", "bJet_size", 7, 3, 10, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Number of AK8Jets", "Number of AK8 jets", "Normalized Events", "JetAK8_size", 6, 0, 6, PRE, "ss2l_S5", 1.5)
-drawHistoSame(indir, tree, "H_T of Jets", "H^{jet}_{T} (GeV)", "Normalized Events", "j_ht", 19, 400, 2300, PRE, "ss2l_S5", 1.5)
-drawHistoSame(indir, tree, "Avg dR_bb", "\DeltaR^{avg}_{bb}", "Normalized Events", "bb_avg_dr", 14, 0.5, 4, PRE, "ss2l_S5", 1.3)
-drawHistoSame(indir, tree, "Min dR_bb", "\DeltaR^{min}_{bb}", "Normalized Events", "bb_min_dr", 15, 0.5, 2, PRE, "ss2l_S5", 1.3)
-'''
-# S5, Appendix #
-'''
-drawHistoSame(indir, tree, "pT of bjet1", "bjet1 p_{T} (GeV)", "Normalized Events", "bJet1_pt", 18, 0, 900, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of bjet2", "bjet2 p_{T} (GeV)", "Normalized Events", "bJet2_pt", 20, 0, 500, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of bjet3", "bjet3 p_{T} (GeV)", "Normalized Events", "bJet3_pt", 15, 0, 300, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of bjet1", "bjet1 \eta", "Normalized Events", "bJet1_eta", 17, -3.4, 3.4, PRE, "ss2l_S5", 1.4)#
-drawHistoSame(indir, tree, "Eta of bjet2", "bjet2 \eta", "Normalized Events", "bJet2_eta", 17, -3.4, 3.4, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of bjet3", "bjet3 \eta", "Normalized Events", "bJet3_eta", 17, -3.4, 3.4, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b1b2", "\DeltaR_{b1b2}", "Normalized Events", "b1b2_dr", 20, 0, 6, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b1b3", "\DeltaR_{b1b3}", "Normalized Events", "b1b3_dr", 20, 0, 6, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b2b3", "\DeltaR_{b2b3}", "Normalized Events", "b2b3_dr", 20, 0, 6, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of b1b2", "m_{b1b2} (GeV)", "Normalized Events", "b1b2_m", 20, 0, 1000, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of b1b3", "m_{b1b3} (GeV)", "Normalized Events", "b1b3_m", 20, 0, 1000, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of b2b3", "m_{b2b3} (GeV)", "Normalized Events", "b2b3_m", 20, 0, 1000, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of Lep1", "Lep1 p_{T} (GeV)", "Normalized Events", "Lep1_pt", 20, 0, 500, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of Lep2", "Lep2 p_{T} (GeV)", "Normalized Events", "Lep2_pt", 24, 0, 300, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of Lep1", "Lep1 \eta", "Normalized Events", "Lep1_eta", 17, -3.4, 3.4, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of Lep2", "Lep2 \eta", "Normalized Events", "Lep2_eta", 17, -3.4, 3.4, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of dilepton", "m_{ll} (GeV)", "Normalized Events", "l1l2_m", 12, 0, 600, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1l2", "\DeltaR_{l1l2}", "Normalized Events", "l1l2_dr", 30, 0, 6, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1b1", "\DeltaR_{l1b1}", "Normalized Events", "l1b1_dr", 30, 0, 6, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1b2", "\DeltaR_{l1b2}", "Normalized Events", "l1b2_dr", 30, 0, 6, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1b3", "\DeltaR_{l1b3}", "Normalized Events", "l1b3_dr", 30, 0, 6, PRE, "ss2l_S5", 1.4)#
-drawHistoSame(indir, tree, "dR of l2b1", "\DeltaR_{l2b1}", "Normalized Events", "l2b1_dr", 30, 0, 6, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l2b2", "\DeltaR_{l2b2}", "Normalized Events", "l2b2_dr", 30, 0, 6, PRE, "ss2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l2b3", "\DeltaR_{l2b3}", "Normalized Events", "l2b3_dr", 30, 0, 6, PRE, "ss2l_S5", 1.4)
+drawHistoSame(indir, tree, "Jet_size", "Number of jets", "Normalized Events", "Jet_size", 11, 4, 15, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "j_ht", "Jet H_{T} (GeV)", "Normalized Events", "j_ht", 25, 0, 2500, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "Lep1_pt", "p^{l1}_{T} (GeV)", "Normalized Events", "Lep1_pt", 18, 0, 360, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "Lep2_pt", "p^{l2}_{T} (GeV)", "Normalized Events", "Lep2_pt", 15, 0, 300, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "l1l2_dr", "\DeltaR_{ll}", "Normalized Events", "l1l2_dr", 30, 0, 6, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "l1l2_m", "m_{ll} (GeV)", "Normalized Events", "l1l2_m", 30, 0, 600, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "b_cent", "bJet centrality", "Normalized Events", "b_cent", 20, 0, 1, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "Jet_cent", "Jet centrality (cent_{j})", "Normalized Events", "Jet_cent", 20, 0, 1, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "bJet1_pt", "p^{b1}_{T} (GeV)", "Normalized Events", "bJet1_pt", 60, 0, 600, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "bJet2_pt", "p^{b2}_{T} (GeV)", "Normalized Events", "bJet2_pt", 50, 0, 500, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "Jet_cent", "Jet centrality", "Normalized Events", "Jet_cent", 20, 0, 1, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "Missing Transverse Energy", "MET (GeV)", "Normalized Events", "MET_E", 30, 0, 300, PRE, "S4", yscale=1.4)
+drawHistoSame(indir, tree, "FH_SL_DL", "FH_SL_DL", "Normalized Events", "FH_SL_DL", 5, -1, 4, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "bJet1_pt", "bJet1_pt", "Normalized Events", "bJet1_pt", 60, 0, 600, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "bJet2_pt", "bJet2_pt", "Normalized Events", "bJet2_pt", 50, 0, 500, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "bJet3_pt", "bJet3_pt", "Normalized Events", "bJet3_pt", 40, 0, 400, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "bJet4_pt", "bJet4_pt", "Normalized Events", "bJet4_pt", 30, 0, 300, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "Lep1_pt", "Lep1_pt", "Normalized Events", "Lep1_pt", 20, 0, 400, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "Lep2_pt", "Lep2_pt", "Normalized Events", "Lep2_pt", 15, 0, 300, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "l1l2_dr", "l1l2_dr", "Normalized Events", "l1l2_dr", 30, 0, 6, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "bb_avg_dr", "bb_avg_dr", "Normalized Events", "bb_avg_dr", 30, 0, 6, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "j_ht", "j_ht", "Normalized Events", "j_ht", 30, 0, 3000, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "bJet_size", "bJet_size", "Normalized Events", "bJet_size", 10, 0, 10, PRE, "S4", yscale=1.3)
+drawHistoSame(indir, tree, "JetAK8_size", "JetAK8_size", "Normalized Events", "JetAK8_size", 10, 0, 10, PRE, "S4", yscale=1.3)
 '''
 
-### OS2l ###
-'''
-# S0 #
-drawHistoSame(indir, tree, "Number of leptons", "Number of leptons", "Normalized Events", "Lep_size", 5, 0, 5, PRE, "os2l_S0", 1.3)
-# S1 #
-drawHistoSame(indir, tree, "Sign of two leptons", "Multiplication of charges of two leptons", "Normalized Events", "SS_OS_DL", 5, -2, 3, PRE, "os2l_S1", 1.4)
-# S2 #
-drawHistoSame(indir, tree, "pT of Lep1", "p_{T} of leading lepton (GeV)", "Normalized Events", "Lep1_pt", 20, 0, 400, PRE, "os2l_S2", 1.4)
-drawHistoSame(indir, tree, "pT of Lep2", "p_{T} of sub-leading lepton (GeV)", "Normalized Events", "Lep2_pt", 10, 0, 200, PRE, "os2l_S2", 1.4)
-drawHistoSame(indir, tree, "Eta of Lep1", "\eta of leading lepton", "Normalized Events", "Lep1_eta", 17, -3.4, 3.4, PRE, "os2l_S2", 1.4)
-drawHistoSame(indir, tree, "Eta of Lep2", "\eta of sub-leading lepton", "Normalized Events", "Lep2_eta", 17, -3.4, 3.4, PRE, "os2l_S2", 1.4)
-drawHistoSame(indir, tree, "Missing Transverse Energy", "MET (GeV)", "Normalized Events", "MET_E", 20, 0, 500, PRE, "os2l_S2", 1.4)
-# S3 #
-drawHistoSame(indir, tree, "Number of Jets", "Number of jets", "Normalized Events", "Jet_size", 15, 0, 15, PRE, "os2l_S3", 1.4)
-drawHistoSame(indir, tree, "Number of bJets", "Number of b jets", "Normalized Events", "bJet_size", 10, 0, 10, PRE, "os2l_S3", 1.4)
-# S4 #
-drawHistoSame(indir, tree, "H_T of Jets", "H^{jet}_{T} (GeV)", "Normalized Events", "j_ht", 18, 400, 2200, PRE, "os2l_S4", 1.4)
-drawHistoSame(indir, tree, "pT of bjet1", "bjet1 p_{T} (GeV)", "Normalized Events", "bJet1_pt", 18, 0, 900, PRE, "os2l_S4", 1.4)
-drawHistoSame(indir, tree, "pT of bjet2", "bjet2 p_{T} (GeV)", "Normalized Events", "bJet2_pt", 20, 0, 500, PRE, "os2l_S4", 1.4)
-drawHistoSame(indir, tree, "pT of bjet3", "bjet3 p_{T} (GeV)", "Normalized Events", "bJet3_pt", 18, 0, 450, PRE, "os2l_S4", 1.4)
-drawHistoSame(indir, tree, "pT of bjet4", "bjet4 p_{T} (GeV)", "Normalized Events", "bJet4_pt", 25, 0, 250, PRE, "os2l_S4", 1.4)
-drawHistoSame(indir, tree, "pT of bjet5", "bjet5 p_{T} (GeV)", "Normalized Events", "bJet5_pt", 14, 20, 160, PRE, "os2l_S4", 1.4)
-# S5 #
-drawHistoSame(indir, tree, "Number of Jets", "Number of jets", "Normalized Events", "Jet_size", 12, 3, 15, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Number of bJets", "Number of b jets", "Normalized Events", "bJet_size", 7, 3, 10, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Number of AK8Jets", "Number of AK8 jets", "Normalized Events", "JetAK8_size", 7, 0, 7, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "H_T of Jets", "H^{jet}_{T} (GeV)", "Normalized Events", "j_ht", 18, 400, 2200, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Avg dR_bb", "\DeltaR^{avg}_{bb}", "Normalized Events", "bb_avg_dr", 20, 0, 4, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Min dR_bb", "\DeltaR^{min}_{bb}", "Normalized Events", "bb_min_dr", 15, 0.5, 2, PRE, "os2l_S5", 1.4)
-'''
+######## S4 #######################
 
-# S5 Appendix #
+###### Single ########
+infile = "/home/stiger97/github/tthh/result_4Cat_DRAFT/score.root"
+#####################
 '''
-drawHistoSame(indir, tree, "Higgs category", "Event label for Higgs origin b jet pair", "Normalized Events", "bCat_higgs5_2Mat_1", 13, -1, 12, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of bjet1", "bjet1 p_{T} (GeV)", "Normalized Events", "bJet1_pt", 18, 0, 900, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of bjet2", "bjet2 p_{T} (GeV)", "Normalized Events", "bJet2_pt", 20, 0, 500, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of bjet3", "bjet3 p_{T} (GeV)", "Normalized Events", "bJet3_pt", 18, 0, 450, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of bjet4", "bjet4 p_{T} (GeV)", "Normalized Events", "bJet4_pt", 25, 0, 250, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of bjet5", "bjet5 p_{T} (GeV)", "Normalized Events", "bJet5_pt", 14, 20, 160, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of bjet1", "bjet1 mass (GeV)", "Normalized Events", "bJet1_m", 20, 0, 200, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of bjet2", "bjet2 mass (GeV)", "Normalized Events", "bJet2_m", 20, 0, 100, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of bjet3", "bjet3 mass (GeV)", "Normalized Events", "bJet3_m", 20, 0, 80, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of bjet4", "bjet4 mass (GeV)", "Normalized Events", "bJet4_m", 20, 0, 60, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of bjet5", "bjet5 mass (GeV)", "Normalized Events", "bJet5_m", 20, 0, 30, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of bjet1", "bjet1 \eta", "Normalized Events", "bJet1_eta", 17, -3.4, 3.4, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of bjet2", "bjet2 \eta", "Normalized Events", "bJet2_eta", 17, -3.4, 3.4, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of bjet3", "bjet3 \eta", "Normalized Events", "bJet3_eta", 17, -3.4, 3.4, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of bjet4", "bjet4 \eta", "Normalized Events", "bJet4_eta", 17, -3.4, 3.4, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of bjet5", "bjet5 \eta", "Normalized Events", "bJet5_eta", 17, -3.4, 3.4, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b1b2", "\DeltaR_{b1b2}", "Normalized Events", "b1b2_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b1b3", "\DeltaR_{b1b3}", "Normalized Events", "b1b3_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b1b4", "\DeltaR_{b1b4}", "Normalized Events", "b1b4_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b1b5", "\DeltaR_{b1b5}", "Normalized Events", "b1b5_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b2b3", "\DeltaR_{b2b3}", "Normalized Events", "b2b3_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b2b4", "\DeltaR_{b2b4}", "Normalized Events", "b2b4_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b2b5", "\DeltaR_{b2b5}", "Normalized Events", "b2b5_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b3b4", "\DeltaR_{b3b4}", "Normalized Events", "b3b4_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b3b5", "\DeltaR_{b3b5}", "Normalized Events", "b3b5_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of b4b5", "\DeltaR_{b4b5}", "Normalized Events", "b4b5_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of Lep1", "p_{T} of leading lepton (GeV)", "Normalized Events", "Lep1_pt", 20, 0, 400, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "pT of Lep2", "p_{T} of sub-leading lepton (GeV)", "Normalized Events", "Lep2_pt", 10, 0, 200, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of Lep1", "\eta of leading lepton", "Normalized Events", "Lep1_eta", 17, -3.4, 3.4, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Eta of Lep2", "\eta of sub-leading lepton", "Normalized Events", "Lep2_eta", 17, -3.4, 3.4, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Mass of dilepton", "m_{l1l2} (GeV)", "Normalized Events", "l1l2_m", 20, 0, 500, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1l2", "\DeltaR_{l1l2}", "Normalized Events", "l1l2_dr", 20, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Missing Transverse Energy", "MET (GeV)", "Normalized Events", "MET_E", 10, 0, 500, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "H_T of Jets", "H^{jet}_{T} (GeV)", "Normalized Events", "j_ht", 18, 400, 2200, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1b1", "\DeltaR_{l1b1}", "Normalized Events", "l1b1_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1b2", "\DeltaR_{l1b2}", "Normalized Events", "l1b2_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1b3", "\DeltaR_{l1b3}", "Normalized Events", "l1b3_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1b4", "\DeltaR_{l1b4}", "Normalized Events", "l1b4_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l1b5", "\DeltaR_{l1b5}", "Normalized Events", "l1b5_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l2b1", "\DeltaR_{l2b1}", "Normalized Events", "l2b1_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l2b2", "\DeltaR_{l2b2}", "Normalized Events", "l2b2_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l2b3", "\DeltaR_{l2b3}", "Normalized Events", "l2b3_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l2b4", "\DeltaR_{l2b4}", "Normalized Events", "l2b4_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dR of l2b5", "\DeltaR_{l2b5}", "Normalized Events", "l2b5_dr", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "dEta when bb is farthest", "\eta_{bb} when \DeltaR^{max}_{bb}", "Normalized Events", "bb_dEta_WhenMaxdR", 30, 0, 6, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Centrality from b jets", "b jet centrality", "Normalized Events", "b_cent", 10, 0, 1, PRE, "os2l_S5", 1.4)
-drawHistoSame(indir, tree, "Twist angle", "Twist angle of b-jet pair with largest mass, \\tau_{bb}", "Normalized Events", "bb_twist", 20, 0, 4, PRE, "os2l_S5", 1.4)
+drawHistoSame_SingleFile(infile, tree, "Higgs Mass","Higgs p_{T} (GeV)", "Normalized Events", "higgs_pt", 80, 0, 800, PRE, "S4", normalize=True, yscale=1.3)
+drawHistoSame_SingleFile(infile, tree, "Higgs Mass","Higgs \eta_{h}", "Normalized Events", "higgs_eta", 30, -3, 3, PRE, "S4", normalize=True, yscale=1.3)
+drawHistoSame_SingleFile(infile, tree, "Higgs Mass","Higgs m_{h} (GeV)", "Normalized Events", "higgs_mass", 30, 0, 300, PRE, "S4", normalize=True, yscale=1.3)
+drawHistoSame_SingleFile(infile, tree, "bfh_dr", "\DeltaR^{bfh}_{bb}", "Mormalized Events" ,"bfh_dr", 16, 0, 4, PRE, "S4", normalize=True, yscale=1.3)
+drawHistoSame_SingleFile(infile, tree, "bfh_Ht", "H^{bfh}_{T} (GeV)", "Mormalized Events" ,"bfh_Ht", 35, 0, 700, PRE, "S4", normalize=True, yscale=1.3)
+drawHistoSame_SingleFile(infile, tree, "bfh_dEta", "\Delta\eta_{bfh}", "Mormalized Events" ,"bfh_dEta", 30, 0, 3, PRE, "S4", normalize=True, yscale=1.3)
+drawHistoSame_SingleFile(infile, tree, "bfh_dPhi", "\Delta\phi_{bfh}", "Mormalized Events" ,"bfh_dPhi", 35, 0, 3.5, PRE, "S4", normalize=True, yscale=1.3)
 '''
-# HIGGS MASS #
-#infile = "/home/stiger97/github/tthh_full_14TeV/os2l_score_1129.root"
-#drawHistoSame_Single(infile, tree, "mass of Higgs2 (DNN)", "m^{DNN}_{H2} (GeV)", "Normalzied Events", "higgs_mass_sub", 45, 0, 900, PRE, "os2l_Higgs", 1.3)
-#drawHistoSame(indir, tree, "mass of Higgs1 (Chi)", "m^{min \chi^{2}}_{H} (GeV)", "Normalized Events", "chi_Higgs1_m", 15, 50, 200, PRE, "os2l_Higgs", 1.3) 
-#drawHistoSame_Single(infile, tree, "mass of Higgs1 (DNN)", "m^{DNN}_{H1} (GeV)", "Normalzied Events", "higgs_mass", 17, 0, 340, PRE, "os2l_Higgs", 1.3)
-#drawHistoSame_Single(infile, tree, "Ht of b from Higgs (DNN)", "H_{T} of two b jets from Higgs (GeV)", "Normalzied Events", "bfh_Ht", 20, 0, 800, PRE, "os2l_Higgs", 1.3)
-#drawHistoSame_Single(infile, tree, "dR of b pair from Higgs (DNN)", "\DeltaR of two b jets from Higgs (GeV)", "Normalzied Events", "bfh_dr", 20, 0, 7, PRE, "os2l_Higgs", 1.3)
-'''
-#drawHistoSame(indir, tree, "", "x", "Normalized Events", "", 0, 0, 0, PRE, 3) # ymax_15
-#drawHistoSame(indir, tree, "mass of Higgs1 (Chi)", "Reconstructed mass of Higgs, minimum \chi^{2} (GeV)", "Normalized Events", "chi_Higgs1_m", 15, 50, 200, PRE, "os2l", 1.3) 
-#drawHistoSame(indir, tree, "mass of Higg2 (Chi)", "m_{H2} (Minimum \chi^{2})", "Normalized Events", "chi_Higgs2_m", 25, 0, 250, PRE, 1)
-#drawHistoSame_Single(infile, tree, "mass of Higgs1 (DNN)", "Reconstructed mass of Higgs, DNN (GeV)", "Normalzied Events", "higgs_mass", 15, 0, 300, PRE, "Higgs1", 1.3)
-drawHistoSame_Single(infile, tree, "mass of Higgs2 (DNN)", "Reconstructed mass of Higgs 2, DNN (GeV)", "Normalzied Events", "higgs_mass_sub", 15, 0, 300, PRE, "Higgs1", 1.3)
-#drawHistoSame_Single(infile, tree, "Ht of b from Higgs (DNN)", "H_{T} of two b jets from Higgs, DNN (GeV)", "Normalzied Events", "bfh_Ht", 20, 0, 800, PRE, "Higgs1", 1.6)
-#drawHistoSame_Single(infile, tree, "dR of b pair from Higgs (DNN)", "\DeltaR of two b jets from Higgs, DNN (GeV)", "Normalzied Events", "bfh_dr", 20, 0, 7, PRE, "Higgs1", 1.7)
-#drawHistoSame_Single_Sub(infile, tree, "mass of Higgs1 (DNN)", "m_{H1} (DNN)", "Normalzied Events", "higgs_mass", 30, 0, 300, PRE, 1)
-#drawHistoSame_Single_Sub(infile, tree, "mass of Higgs2 (DNN)", "m_{H2} (DNN)", "Normalzied Events", "higgs_mass_sub", 40, 0, 400, PRE, 1)
-'''
+##################################################
 
-
-###### DNN score ########
-
-# SS2l
-'''
-infile = "/home/stiger97/github/tthh_full_14TeV/ss2l_score_1129.root"
-Stack_Filter_Single(infile, tree, "G1", "t\\bar{t}HH score", "Events", "G1", 20,0,1, PRE, xsecs_ss2l, lumi, 500, "ss2l_DNN", 3)
-Stack_Filter_Single(infile, tree, "G2", "t\\bar{t}nb score", "Events", "G2", 20,0,1, PRE, xsecs_ss2l, lumi, 500, "ss2l_DNN", 1.4)
-Stack_Filter_Single(infile, tree, "G3", "t\\bar{t}t\\bar{t} score", "Events", "G3", 20,0,1, PRE, xsecs_ss2l, lumi, 500, "ss2l_DNN", 2)
-Stack_Filter_Single(infile, tree, "G4", "t\\bar{t}H score", "Events", "G4", 20,0,1, PRE, xsecs_ss2l, lumi, 500, "ss2l_DNN", 1.6)
-Stack_Filter_Single(infile, tree, "DNN", "DNN discriminant", "Events", "DNN", 20,0,1, PRE, xsecs_ss2l, lumi, 500, "ss2l_DNN", 3.8)
-
-drawHistoSame_Single(infile, tree, "G1", "t\\bar{t}HH score", "Normalzied Events", "G1", 20, 0, 1, PRE, "ss2l_DNN", 1.4)
-drawHistoSame_Single(infile, tree, "G2", "t\\bar{t}nb score", "Normalzied Events", "G2", 20, 0, 1, PRE, "ss2l_DNN", 1.4)
-drawHistoSame_Single(infile, tree, "G3", "t\\bar{t}t\\bar{t} score", "Normalzied Events", "G3", 20, 0, 1, PRE, "ss2l_DNN", 1.4)
-drawHistoSame_Single(infile, tree, "G4", "t\\bar{t}H score", "Normalzied Events", "G4", 20, 0, 1, PRE, "ss2l_DNN", 1.4)
-drawHistoSame_Single(infile, tree, "DNN", "DNN discriminant", "Normalzied Events", "DNN", 20, 0, 1, PRE, "ss2l_DNN", 1.4)
-'''
-
-# OS2l
-'''
-infile = "/home/stiger97/github/tthh_full_14TeV/os2l_score_1129.root"
-Stack_Filter_Single(infile, tree, "G1", "t\\bar{t}HH score", "Events", "G1", 20,0,1, PRE, xsecs_os2l, lumi, 500, "os2l_DNN", 2.1)
-Stack_Filter_Single(infile, tree, "G2", "t\\bar{t}nb score", "Events", "G2", 20,0,1, PRE, xsecs_os2l, lumi, 500, "os2l_DNN", 1.5)
-Stack_Filter_Single(infile, tree, "G3", "t\\bar{t}t\\bar{t} score", "Events", "G3", 20,0,1, PRE, xsecs_os2l, lumi, 500, "os2l_DNN", 2.2)
-Stack_Filter_Single(infile, tree, "G4", "t\\bar{t}H score", "Events", "G4", 20,0,1, PRE, xsecs_os2l, lumi, 500, "os2l_DNN", 1.4)
-Stack_Filter_Single(infile, tree, "DNN", "DNN discriminant", "Events", "DNN", 20,0,2, PRE, xsecs_os2l, lumi, 500, "os2l_DNN", 2.7)
-'''
-'''
-drawHistoSame_Single(infile, tree, "G1", "t\\bar{t}HH score", "Normalzied Events", "G1", 20, 0, 1, PRE, "os2l_DNN", 1.4)
-drawHistoSame_Single(infile, tree, "G2", "t\\bar{t}nb score", "Normalzied Events", "G2", 20, 0, 1, PRE, "os2l_DNN", 1.4)
-drawHistoSame_Single(infile, tree, "G3", "t\\bar{t}t\\bar{t} score", "Normalzied Events", "G3", 20, 0, 1, PRE, "os2l_DNN", 1.4)
-drawHistoSame_Single(infile, tree, "G4", "t\\bar{t}H score", "Normalzied Events", "G4", 20, 0, 1, PRE, "os2l_DNN", 1.4)
-drawHistoSame_Single(infile, tree, "DNN", "DNN discriminant", "Normalzied Events", "DNN", 20, 0, 1, PRE, "os2l_DNN", 1.4)
-'''

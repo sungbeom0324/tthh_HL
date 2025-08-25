@@ -1,835 +1,735 @@
+# Refactoring. Legend 24/03/03
 import ROOT
 import numpy
 import os
 import glob
+from array import array
 
-def drawHistoSingle(infile, tree, title, xtitle, ytitle, branch, nbin, xmin, xmax, PRE, tag, yscale):
-    title = ""
-    outdir = "./plots/" + PRE + "/Single/" + tag + "/"
-    try:
-        os.makedirs(outdir)
-    except:
-        pass
+# Global Constants
+PROCESS_FILES = {
+    "ttHH": "_tthh.root",
+    "ttbb": "_ttbb.root",
+    "ttw": "_ttw.root",
+    "ttH": "_tth.root",
+    "ttbbV": "_ttbbv.root",
+    "tttt": "_tttt.root",
+    "ttbbH": "_ttbbh.root",
+    "ttVV": "_ttvv.root",
+    "ttZH": "_ttzh.root"
+}
 
-    df = ROOT.RDataFrame(tree, infile)
-    
-    canvas = ROOT.TCanvas("c", "c", 400, 400)
-    canvas.SetLeftMargin(0.15)  # Adjust the left margin to make space for the y-axis label
-    # Define legend position based on `lepo` parameter
-    legend = ROOT.TLegend(0.70, 0.75, 0.87, 0.83)
-    legend.SetTextSize(0.025)  # Set legend text size
-    legend.SetBorderSize(0)  # No border for legend
+PROCESS_FILTERS = {
+    "ttHH": "process==0",
+    "ttbb": "process==1",
+    "ttw": "process==2",
+    "ttH": "process==3",
+    "ttbbV": "process==4",
+    "tttt": "process==5",
+    "ttbbH": "process==6",
+    "ttVV": "process==7",
+    "ttZH": "process==8"
+}
 
-    # 히스토그램 생성
-    h = df.Histo1D(ROOT.RDF.TH1DModel(title, title, nbin, xmin, xmax), branch)
-    ymax = h.GetMaximum() 
-    h.SetMaximum(ymax * yscale)
-    h.GetXaxis().SetTitle(xtitle)
-    h.GetYaxis().SetTitle(ytitle)
-    h.SetLineColor(ROOT.kBlack)
-    h.SetLineWidth(2)
-#    h.SetLineStyle(2)  # dashed = 2
-    h.SetStats(0)
-    legend.AddEntry(h.GetValue(), "t\\bar{t}b\\bar{b}", "f")
+PROCESS_LABELS = {
+    "ttHH": "t\\bar{t}HH",
+    "ttbb": "t\\bar{t}b\\bar{b}",
+    "ttw": "t\\bar{t}W",
+    "ttH": "t\\bar{t}H",
+    "ttbbV": "t\\bar{t}b\\bar{b}V",
+    "tttt": "t\\bar{t}t\\bar{t}",
+    "ttbbH": "t\\bar{t}b\\bar{b}H",
+    "ttZH": "t\\bar{t}ZH",
+    "ttVV": "t\\bar{t}VV"
+}
 
-    h.DrawNormalized("hist")
+PROCESS_COLORS = {
+    "ttHH": ROOT.kBlack,   
+    "ttbb": 38, # Blue
+    "ttH":  ROOT.TColor.GetColor("#a96b59"),
+    "ttw":  30, # 
+    "tttt": ROOT.TColor.GetColor("#f08080"), # Red  
+    "ttbbH": ROOT.TColor.GetColor("#f4a582"),  
+    "ttZH":  14, 
+    "ttVV":  41,  
+    "ttbbV": ROOT.TColor.GetColor("#c184c1"), 
+    "ttbbbb": 9
+}
 
-    legend.SetBorderSize(0)
-    legend.Draw()
-    latex = ROOT.TLatex()
-    latex.SetTextSize(0.025)
-    latex.DrawLatexNDC(0.15, 0.91, "CMS #font[52]{Phase-2 Simulation Work in progress}")
-    latex.DrawLatexNDC(0.67, 0.91, "#font[52]{3000fb^{-1} (#sqrt{s} = 14 TeV)}")
+GROUPS = {
+    "ttHH": ["ttHH"],
+    "ttbb_ttH": ["ttbb", "ttH"],
+    "ttW": ["ttw"],
+    "others": ["tttt", "ttZH", "ttbbV", "ttbbH", "ttVV"]
+}
 
-    # Save the plot
-    title = title.replace(" ", "_")
-    canvas.Print(outdir + PRE + "_" + branch + ".pdf")
-    canvas.Clear()
+GROUP_COLORS = {
+    "ttHH": ROOT.kBlack,
+    "ttbb_ttH": 38,   # blue
+    "ttW": 30,       # green
+    "others": ROOT.TColor.GetColor("#f08080") # Red
+}
 
-def drawHistoSingle_2Branches(infile, tree, title, xtitle, ytitle, branch1, branch2, nbin, xmin, xmax, PRE, lepo):
-    title = ""
-    outdir = "./plots/" + PRE + "/Same/"
-    try:
-        os.makedirs(outdir)
-    except:
-        pass
+GROUP_LABELS = {
+    "ttHH": "t\\bar{t}HH",
+    "ttbb_ttH": "t\\bar{t}b\\bar{b} + t\\bar{t}H",
+    "ttW": "t\\bar{t}W",
+    "others": "t\\bar{t}t\\bar{t} + Others"
+}
 
-    # tthh 샘플만 사용
-    tthh = ROOT.RDataFrame(tree, infile).Filter("Genbfh_dr[0]>0")
+XSEC_S0 = { # No selection
+    "ttHH": 0.5153,
+    "ttbb": 844.37,
+    "ttw": 390.63,
+    "ttH": 367.83,
+    "ttbbV": 14.987,
+    "tttt": 17.0,
+    "ttbbH": 8.471,
+    "ttVV": 13.49,
+    "ttZH": 1.55
+}
 
-    canvas = ROOT.TCanvas("c", "c", 400, 400)
-    canvas.SetLeftMargin(0.15)  # Y축 레이블을 위한 왼쪽 여백 조정
-
-    # 범례 설정
-    legend_position = {1: (0.72, 0.84, 0.87, 0.46), 2: (0.38, 0.855, 0.57, 0.705), 3: (0.66, 0.85, 0.81, 0.77)}
-    legend = ROOT.TLegend(*legend_position.get(lepo, legend_position[3]))
-    legend.SetTextSize(0.028)
-    legend.SetEntrySeparation(0.20)
-
-    # 첫 번째 히스토그램 생성
-    h1 = tthh.Histo1D(ROOT.RDF.TH1DModel(title + " - " + branch1, title, nbin, xmin, xmax), branch1)
-    ymax1 = h1.GetMaximum()
-    h1.SetMaximum(1.3 * ymax1)
-    h1.GetXaxis().SetTitle(xtitle)
-    h1.GetYaxis().SetTitle(ytitle)
-    h1.SetLineColor(ROOT.kBlack)
-    h1.SetLineWidth(4)
-    h1.SetStats(0)
-    legend.AddEntry(h1.GetValue(), "b pair (all)", "l")
-
-    # 두 번째 히스토그램 생성
-    h2 = tthh.Histo1D(ROOT.RDF.TH1DModel(title + " - " + branch2, title, nbin, xmin, xmax), branch2)
-#    ymax2 = h2.GetMaximum()
-#    h2.SetMaximum(1.2 * ymax2)
-    h2.SetLineColor(ROOT.kBlue)
-    h2.SetLineWidth(4)
-    h2.SetStats(0)
-    legend.AddEntry(h2.GetValue(), "b pair from Higgs", "l")
-
-    # 첫 번째 히스토그램을 그린 후 두 번째 히스토그램을 같은 캔버스에 그리기
-    h1.DrawNormalized("hist")
-    h2.DrawNormalized("hist same")
-
-    legend.SetBorderSize(0)
-    legend.Draw()
-
-    latex = ROOT.TLatex()
-    latex.SetTextSize(0.025)
-    latex.DrawLatexNDC(0.19, 0.84, "MadGraph5 Simulation")
-    latex.DrawLatexNDC(0.67, 0.91, "HL-LHC, \\sqrt{s} = 14 TeV")
-
-    title = title.replace(" ", "_")
-    canvas.Print(outdir + PRE + "_" + branch1 + "_vs_" + branch2 + ".pdf")
-    canvas.Clear() 
-
-def drawHistoSingleSum(infile, tree, title, xtitle, ytitle, branch1, branch2, nbin, xmin, xmax, PRE):
-    outdir = "./plots/" + PRE + "/"
-    try : os.makedirs(outdir)
-    except : pass
-    df = ROOT.RDataFrame(tree, infile)
-    df = df.Define("sumbranch", "{} + {}".format(branch1, branch2))     
-    canvas = ROOT.TCanvas("c1", "c1")
-    h = df.Histo1D(ROOT.RDF.TH1DModel(title, title, nbin, xmin, xmax), "sumbranch")
-    h.GetXaxis().SetTitle(xtitle)
-    h.GetYaxis().SetTitle(ytitle)
-    h.Draw("colz")
-    title = title.replace(" ", "_")
-    latex = ROOT.TLatex()
-    latex.SetTextSize(0.025)
-    latex.DrawLatexNDC(0.68, 0.91, "HL-LHC (\\sqrt{s} =14TeV)")
-    canvas.Print(outdir+ title + ".pdf")
-    canvas.Clear()
-
-def drawHisto2D(infile, tree, title, xtitle, ytitle, xbranch, nxbin, xmin, xmax, ybranch, nybin, ymin, ymax, PRE):
-    outdir = "./plots/" + PRE + "/2D/"
-    try:
-        os.makedirs(outdir)
-    except:
-        pass
-    
-    df = ROOT.RDataFrame(tree, infile)
-    
-    # Create canvas with adjusted margin
-    canvas = ROOT.TCanvas("c", "c", 400, 400)
-    canvas.SetLeftMargin(0.15)  # Adjust left margin for Y-axis label
-
-    # Create 2D histogram
-    h = df.Histo2D(ROOT.RDF.TH2DModel("", "", nxbin, xmin, xmax, nybin, ymin, ymax), xbranch, ybranch)
-    h.GetXaxis().SetTitle(xtitle)
-    h.GetYaxis().SetTitle(ytitle)
-    h.SetStats(0)
-    
-    # Draw 2D histogram
-    h.Draw("colz")
-
-    # Add text labels to the canvas
-    latex = ROOT.TLatex()
-    latex.SetTextSize(0.025)
-    latex.DrawLatexNDC(0.19, 0.91, "MadGraph5 Simulation")
-    latex.DrawLatexNDC(0.67, 0.91, "HL-LHC, \\sqrt{s} = 14 TeV")
-    
-    # Save the canvas to a file
-    title = title.replace(" ", "_")
-    canvas.Print(outdir + title + ".pdf")
-    canvas.Clear()
-
-def drawHistoSame(indir, tree, title, xtitle, ytitle, branch, nbin, xmin, xmax, PRE, tag, yscale):
-    title = ""
-    outdir = "./plots/" + PRE + "/Same/" + tag + "/"
-    try : os.makedirs(outdir)
-    except : pass
-    
-    tthh   = ROOT.RDataFrame(tree, indir + PRE + "_tthh.root")
-    tth    = ROOT.RDataFrame(tree, indir + PRE + "_tth.root")
-    ttbbh  = ROOT.RDataFrame(tree, indir + PRE + "_ttbbh.root")
-    ttzh   = ROOT.RDataFrame(tree, indir + PRE + "_ttzh.root")
-    ttvv   = ROOT.RDataFrame(tree, indir + PRE + "_ttvv.root")
-    ttbbv  = ROOT.RDataFrame(tree, indir + PRE + "_ttbbv.root")
-    ttbb   = ROOT.RDataFrame(tree, indir + PRE + "_ttbb.root")
-    ttbbbb = ROOT.RDataFrame(tree, indir + PRE + "_ttbbbb.root")
-    tttt   = ROOT.RDataFrame(tree, indir + PRE + "_tttt.root").Range(100000)
-    ROOT.gStyle.SetPadTickX(1)  # X축의 위쪽에 tick 추가
-    ROOT.gStyle.SetPadTickY(1)  # Y축의 오른쪽에 tick 추가
-
-    _dfs = { # Not Filtered.
-        "ttbb": ttbb, "ttbbbb": ttbbbb, 
-        "ttH": tth, "ttbbH": ttbbh, "ttZH": ttzh,
-        "ttVV": ttvv, "ttbbV": ttbbv, "tttt": tttt,
-        "ttHH": tthh
+SELECTIONS = {
+    "S0": {
+        "cut": "Lep_size >= -1",
+        "xsec": XSEC_S0,
+    },
+    "S1": {
+        "cut": "Lep_size == 2",
+    },
+    "S2": {
+        "cut": "Lep_size == 2 && SS_OS_DL == 1",
+    },
+    "S3": {
+        "cut": "Lep_size == 2 && SS_OS_DL == 1 && MET_E>30",
+    },
+    "S4": {
+        "cut": "Lep_size == 2 && SS_OS_DL == 1 && MET_E>30 && bJet_size>=4",
     }
-    dfs = {} # Filtered.
-    for key, _df in _dfs.items():
-        dfs[key] = _df.Filter("Lep_size==2").Filter("SS_OS_DL==1").Filter("MET_E[0]>30").Filter("bJet_size==2")#.Filter("j_ht>300")#.Redefine("bCat_higgs5_2Mat_1", "bCat_higgs5_2Mat_1+1") # modify! #
+}
 
-    legs = {
-        "ttHH" : "t\\bar{t}HH",
-        "ttH"  : "t\\bar{t}H", "ttbbH" : "t\\bar{t}b\\bar{b}H", "ttZH" : "t\\bar{t}ZH",
-        "ttVV" : "t\\bar{t}VV", "ttbbV" : "t\\bar{t}b\\bar{b}V", 
-        "ttbb" : "t\\bar{t}b\\bar{b}", "ttbbbb" : "t\\bar{t}b\\bar{b}b\\bar{b}", "tttt" : "t\\bar{t}t\\bar{t}"
-    }
-    colors = {
-        "ttHH": ROOT.kBlack,
-        "ttH": ROOT.kGreen-4, "ttbbH": ROOT.kGray+1, "ttZH": ROOT.kViolet-4,
-        "ttVV": ROOT.kOrange-4, "ttbbV": ROOT.kGreen+2, "ttbb": ROOT.kBlue, "ttbbbb": ROOT.kCyan,
-        "tttt": ROOT.TColor.GetColorTransparent(ROOT.kRed, 0.8)
-    }
-    
-    canvas = ROOT.TCanvas("c", "c", 400, 400)
-    canvas.SetLeftMargin(0.15)  # Adjust the left margin to make space for the y-axis label
-    # Define legend position based on `lepo` parameter
-    legend = ROOT.TLegend(0.20, 0.88, 0.87, 0.78)
-    #legend = ROOT.TLegend(0.60, 0.75, 0.89, 0.83)
-    legend.SetTextSize(0.025)  # Set legend text size
-    legend.SetEntrySeparation(0.15)  # Space between legend entries
-    legend.SetBorderSize(0)  # No border for legend
-    legend.SetNColumns(5) # Was 5
+# HELPER FUNCTIONS Canvas -> (Histogram) -> Legend -> Text -> Save
 
-    ymax = 0# dfs["ttbb"].Histo1D(ROOT.RDF.TH1DModel(title, title, nbin, xmin, xmax), branch).GetMaximum()   
-    hist_dict = {}
-    # Loop over data frames and create histograms
-    for df_name, df in dfs.items():
-        # Define histogram for each sample
-        h = df.Histo1D(ROOT.RDF.TH1DModel(title, title, nbin, xmin, xmax), branch)
+def createCanvas(width=400, height=400, left_margin=0.15):
+    ROOT.gStyle.SetPadTickX(1)
+    ROOT.gStyle.SetPadTickY(1)
+    canvas = ROOT.TCanvas("c", "c", width, height)
+    canvas.SetLeftMargin(left_margin)
+    return canvas
 
-        # Normalize manually
-        normalization_factor = h.Integral()
-        if normalization_factor > 0:
-            h.Scale(1.0 / normalization_factor)
-        
-        # Update ymax
-        if ymax < h.GetMaximum():
-            ymax = h.GetMaximum()
+def createCanvasWithPads(canvas_name="c", width=600, height=700, logy2=False):
+    ROOT.gStyle.SetPadTickX(1)
+    ROOT.gStyle.SetPadTickY(1)
+    canvas = ROOT.TCanvas(canvas_name, canvas_name, width, height)
+    pad1 = ROOT.TPad("pad1", "MainPad", 0, 0.25, 1, 1.0)
+    pad1.SetBottomMargin(0.02)
+    pad1.SetLeftMargin(0.15)
+    pad1.SetLogy()
+    pad1.Draw()
+    pad2 = ROOT.TPad("pad2", "SubPad", 0, 0.0, 1, 0.25)
+    pad2.SetTopMargin(0.05)
+    pad2.SetBottomMargin(0.32)
+    pad2.SetLeftMargin(0.15)
+    if logy2:
+        pad2.SetLogy()
+    pad2.Draw()
+    pad2.Draw()
+    return canvas, pad1, pad2
 
-        # Configure axis titles and histogram style
-        h.GetXaxis().SetTitle(xtitle)
-        h.GetXaxis().SetTitleSize(0.04)
-        h.GetYaxis().SetTitle(ytitle)
-        h.GetYaxis().SetTitleSize(0.04)
-        h.SetLineColor(colors[df_name])  # Set line color
-        h.SetLineWidth(3)
-        h.SetStats(0)
+def setHistStyle(hist, xtitle, ytitle, xtitle_size=0.20, ytitle_size=0.20, xoff=1.2, yoff=1.2, line_width=3):
+    hist.GetXaxis().SetTitle(xtitle)
+    hist.GetXaxis().SetTitleSize(xtitle_size)
+    hist.GetXaxis().SetTitleOffset(xoff)
+    hist.GetXaxis().SetLabelSize(0.04)
+    hist.GetYaxis().SetTitle(ytitle)
+    hist.GetYaxis().SetTitleSize(ytitle_size)
+    hist.GetYaxis().SetTitleOffset(yoff)
+    hist.GetYaxis().SetLabelSize(0.04)
+    hist.SetLineWidth(line_width)
+    hist.SetMarkerStyle(21)   # 정사각형 마커?
+    hist.SetMarkerSize(1.2)   # 마커 크기 조절?
+    hist.SetStats(0)
 
-        # Style for signal (ttHH)
-        if df_name == "ttHH":
-            h.SetLineStyle(7)  # Dashed line style for ttHH
-            h.SetLineWidth(7)
-            legend.AddEntry(h.GetValue(), " " + legs[df_name], "f")  # Line for ttHH
-        else:
-            h.SetLineStyle(1)  # Solid line for other processes
-            legend.AddEntry(h.GetValue(), " " + legs[df_name], "f")  # Line legend entry
+def setStackStyle(stack, xtitle, ytitle,
+                  xtitle_size=0.04, xlabel_size=0.04, xtitle_offset=1.1,
+                  ytitle_size=0.045, ylabel_size=0.038, ytitle_offset=1.23, font=42):
+    xaxis = stack.GetXaxis()
+    yaxis = stack.GetYaxis()
+    xaxis.SetTitle(xtitle)
+    xaxis.SetTitleSize(xtitle_size)
+    xaxis.SetLabelSize(xlabel_size)
+    xaxis.SetTitleOffset(xtitle_offset)
+    xaxis.SetTitleFont(font)
+    xaxis.SetLabelFont(font)
+    yaxis.SetTitle(ytitle)
+    yaxis.SetTitleSize(ytitle_size)
+    yaxis.SetLabelSize(ylabel_size)
+    yaxis.SetTitleOffset(ytitle_offset)
+    yaxis.SetTitleFont(font)
+    yaxis.SetLabelFont(font)
 
-        hist_dict[branch + "_" + df_name] = h
+def createLegend(coords=(0.20, 0.88, 0.87, 0.78), text_size=0.03, entry_sep=0.15, border=0, n_columns=5):
+    legend = ROOT.TLegend(*coords)
+    legend.SetTextSize(text_size)
+    legend.SetEntrySeparation(entry_sep)
+    legend.SetBorderSize(border)
+    legend.SetNColumns(n_columns)
+    legend.SetFillStyle(0)     # 투명 레전드 배경
+    legend.SetMargin(0.25)     # 샘플 박스와 텍스트 간 간격 줄이기
+    return legend
 
-    # Draw histograms with consistent styling
-    first = True
-    for _tmp, h in hist_dict.items():
-        h.SetMaximum(ymax * yscale) # ymax
-        if first:
-            h.Draw("hist")
-            first = False
-        else:
-            h.Draw("hist same")
-
-    # Draw the legend
-    legend.Draw()
-
-    # Add CMS and luminosity text
+def drawTextLabels(left="Phase-2 #font[42]{Delphes}",
+                   right="#font[42]{3000 fb^{-1} (#sqrt{s} = 14 TeV)}",
+                   size=0.037):
     latex = ROOT.TLatex()
-    latex.SetTextSize(0.028)
-    latex.DrawLatexNDC(0.16, 0.91, "Phase-2 #font[42]{Delphes} #font[52]{Private Work}")
-    latex.DrawLatexNDC(0.64, 0.91, "#font[42]{3000 fb^{-1} (#sqrt{s} = 14 TeV)}")
+    latex.SetTextSize(size)
+    latex.DrawLatexNDC(0.155, 0.915, left)
+    latex.DrawLatexNDC(0.57, 0.915, right)
 
-    # Save the plot
+def setRatioStyle(ratio_hist, xtitle,
+                                ytitle="Sig/Bkg",
+                                y_min=0.0, y_max=2.0,
+                                text="Sig, Bkg normalized to 1",
+                                text_x=0.18, text_y=0.85):
+    ratio_hist.SetTitle("")
+    ratio_hist.SetMaximum(y_max)
+    ratio_hist.SetMinimum(y_min)
+    ratio_hist.GetXaxis().SetTitle(xtitle)
+    ratio_hist.GetXaxis().SetTitleSize(0.12)
+    ratio_hist.GetXaxis().SetLabelSize(0.10)
+    ratio_hist.GetYaxis().SetTitle(ytitle)
+    ratio_hist.GetYaxis().CenterTitle(True)
+    ratio_hist.GetYaxis().SetTitleSize(0.09)
+    ratio_hist.GetYaxis().SetTitleOffset(0.50)
+    ratio_hist.GetYaxis().SetLabelSize(0.08)
+    ratio_hist.SetLineColor(ROOT.kBlack)
+    ratio_hist.SetMarkerStyle(20)
+    ratio_hist.Draw("ep")
+    
+    latex = ROOT.TLatex()
+    latex.SetTextSize(0.07)
+    latex.SetTextFont(42)
+    latex.SetNDC(True)
+    latex.DrawLatex(text_x, text_y, text)
+
+def saveCanvas(canvas, outdir, PRE, branch, title, tail=""):
+    ROOT.gStyle.SetPadTickX(1)
+    ROOT.gStyle.SetPadTickY(1)
     title = title.replace(" ", "_")
-    canvas.Print(outdir + PRE + "_" + branch + ".pdf")
+    filename = f"{outdir}{PRE}_{branch}{tail}.pdf"
+    canvas.SaveAs(filename)
     canvas.Clear()
 
-def drawHistoSame_tmp(indir, tree, tag, title, xtitle, ytitle, branch, nbin, xmin, xmax, PRE, lepo):
-    title = ""
-    outdir = "./plots/" + PRE + "/Same/"
-    try:
-        os.makedirs(outdir)
-    except:
-        pass
+################################# drawHistoSameXXX ###################################
+def draw2DMatrix_HH_vs_TopDecay(infile, tree, xtitle, ytitle, PRE, tag):
+    outdir = f"./plots/{PRE}/Matrix/{tag}/"
+    os.makedirs(outdir, exist_ok=True)
 
-    # 해당 tag로 시작하는 파일들을 찾기
-    file_list = glob.glob(indir + "/" + tag + "*.root")
+    # 스타일 설정
+    ROOT.gStyle.SetPadTickX(1)
+    ROOT.gStyle.SetPadTickY(1)
+    ROOT.gStyle.SetOptStat(0)
+    ROOT.gStyle.SetPaintTextFormat("8.0f")  # 정수 출력
 
-    if not file_list:
-        print(f"No files found with tag '{tag}' in {indir}")
-        return
+    # Load
+    df = ROOT.RDataFrame(tree, infile)
 
-    # 캔버스와 레전드 설정
-    canvas = ROOT.TCanvas("c", "c", 400, 400)
-    canvas.SetLeftMargin(0.15)  # Y축 제목 공간 확보
-    legend_position = {1: (0.72, 0.84, 0.87, 0.46), 2: (0.38, 0.855, 0.57, 0.705), 3: (0.26, 0.855, 0.45, 0.705)}
-    legend = ROOT.TLegend(*legend_position.get(lepo, legend_position[3]))
-    legend.SetTextSize(0.028)
-    legend.SetEntrySeparation(0.20)
+    # 이벤트 셀렉션
+    df = df.Filter("Lep_size==2") \
+           .Filter("SS_OS_DL==1") \
+           .Filter("MET_E>30") \
+           .Filter("bJet_size>=4")
 
-    # ROOT에서 제공하는 기본 색상 리스트
-    colors = [
-        ROOT.kBlack, ROOT.kRed, ROOT.kBlue, ROOT.kGreen, ROOT.kMagenta, ROOT.kCyan,
-        ROOT.kOrange, ROOT.kPink, ROOT.kViolet, ROOT.kTeal
+    # HH decay label remapping: -1 (others) → 5, 나머지는 0~4로 재배치
+    df = df.Define("HH_label_reordered", """
+        (HH_decay_label == -1) ? 5 :
+        (HH_decay_label >= 1 && HH_decay_label <= 5) ? HH_decay_label - 1 : 6
+    """)
+
+    # 원본 히스토그램 생성
+    hist = df.Histo2D(
+        ("matrix", "", 3, 0, 3, 6, 0, 6),
+        "FH_SL_DL", "HH_label_reordered", "SL_weight"
+    )
+    h2_orig = hist.GetPtr()
+
+    # 새 히스토그램 생성 (y축 순서 반전용)
+    h2_flip = ROOT.TH2D("matrix_flipped", "", 3, 0, 3, 6, 0, 6)
+
+    # bin 내용 복사 (y축 반전)
+    for xbin in range(1, 4):  # X축 bin: 1~3
+        for ybin in range(1, 7):  # Y축 bin: 1~6
+            flipped_ybin = 7 - ybin
+            val = h2_orig.GetBinContent(xbin, ybin)
+            h2_flip.SetBinContent(xbin, flipped_ybin, val)
+
+    # 축 라벨 설정
+    xlabels = ["FH", "SL", "DL"]
+    for i, label in enumerate(xlabels):
+        h2_flip.GetXaxis().SetBinLabel(i + 1, label)
+
+    #ylabels = ["Others", "bbZZ", "WWWW", "bb#tau#tau", "bbWW", "bbbb"]  # 순서 반전
+
+    ylabels = [
+        "Others",
+        "b#bar{b}ZZ",
+        "WWWW",
+        "b#bar{b}#tau#tau",
+        "b#bar{b}WW",
+        "b#bar{b}b#bar{b}"
+    ]  # 순서 반전
+
+    for i, label in enumerate(ylabels):
+        h2_flip.GetYaxis().SetBinLabel(i + 1, label)
+
+    # 축 이름 설정
+    ROOT.gStyle.SetPalette(87)
+    h2_flip.GetXaxis().SetTitle(xtitle)
+    h2_flip.GetXaxis().SetTitleSize(0.04)
+    h2_flip.GetXaxis().SetLabelSize(0.05)
+    h2_flip.GetXaxis().SetTitleOffset(0.9) # NEW
+    h2_flip.GetYaxis().SetTitle(ytitle)
+    h2_flip.GetYaxis().SetTitleSize(0.04)
+    h2_flip.GetYaxis().SetTitleOffset(1.4) # NEW
+    h2_flip.GetYaxis().SetLabelSize(0.05)
+    h2_flip.SetMarkerSize(1.6)
+
+    # 캔버스 생성 및 그리기
+    canvas = createCanvas(width=500, height=400, left_margin=0.12)
+    canvas.SetRightMargin(0.14)
+    h2_flip.Draw("COLZ TEXT")
+
+    # 라벨 및 저장
+    drawTextLabels()
+    saveCanvas(canvas, outdir, PRE, "HH_vs_TopDecay", "", tail="_matrix")
+
+    return h2_flip
+
+def draw2DMatrix_HH_vs_TopDecay_norm(infile, tree, xtitle, ytitle, PRE, tag,
+                                xsec=0.949, lumi=3000):
+    outdir = f"./plots/{PRE}/Matrix/{tag}/"
+    os.makedirs(outdir, exist_ok=True)
+
+    # 스타일 설정
+    ROOT.gStyle.SetPadTickX(1)
+    ROOT.gStyle.SetPadTickY(1)
+    ROOT.gStyle.SetOptStat(0)
+    ROOT.gStyle.SetPaintTextFormat("8.2f")  # 소수 2째자리까지 출력
+
+    # ========================
+    # Ngen from FULL sample
+    # ========================
+    df_all = ROOT.RDataFrame(tree, infile)
+    total_events = df_all.Sum("SL_weight").GetValue()  # selection 전 합계
+    norm_factor = (xsec * lumi) / total_events
+
+    # ========================
+    # Apply selection
+    # ========================
+    df = df_all.Filter("Lep_size==2") \
+               .Filter("SS_OS_DL==1") \
+               .Filter("MET_E>30") \
+               .Filter("bJet_size>=4") \
+               .Define("weight", f"{norm_factor} * SL_weight")
+
+    # HH decay label remapping: -1 (others) → 5, 나머지는 0~4로 재배치
+    df = df.Define("HH_label_reordered", """
+        (HH_decay_label == -1) ? 5 :
+        (HH_decay_label >= 1 && HH_decay_label <= 5) ? HH_decay_label - 1 : 6
+    """)
+
+    # 원본 히스토그램 생성 (여기서 weight 사용)
+    hist = df.Histo2D(
+        ("matrix", "", 3, 0, 3, 6, 0, 6),
+        "FH_SL_DL", "HH_label_reordered", "weight"
+    )
+    h2_orig = hist.GetPtr()
+
+    # 새 히스토그램 생성 (y축 순서 반전용)
+    h2_flip = ROOT.TH2D("matrix_flipped", "", 3, 0, 3, 6, 0, 6)
+
+    # bin 내용 복사 (y축 반전)
+    for xbin in range(1, 4):
+        for ybin in range(1, 7):
+            flipped_ybin = 7 - ybin
+            val = h2_orig.GetBinContent(xbin, ybin)
+            h2_flip.SetBinContent(xbin, flipped_ybin, val)
+
+    # 축 라벨 설정
+    xlabels = ["FH", "SL", "DL"]
+    for i, label in enumerate(xlabels):
+        h2_flip.GetXaxis().SetBinLabel(i + 1, label)
+
+    ylabels = [
+        "Others",
+        "b#bar{b}ZZ",
+        "WWWW",
+        "b#bar{b}#tau#tau",
+        "b#bar{b}WW",
+        "b#bar{b}b#bar{b}"
     ]
+    for i, label in enumerate(ylabels):
+        h2_flip.GetYaxis().SetBinLabel(i + 1, label)
 
-    ymax = 0
-    hist_dict = {}
+    # 축 이름 설정
+    ROOT.gStyle.SetPalette(87)
+    h2_flip.GetXaxis().SetTitle(xtitle)
+    h2_flip.GetXaxis().SetTitleSize(0.04)
+    h2_flip.GetXaxis().SetLabelSize(0.05)
+    h2_flip.GetXaxis().SetTitleOffset(0.9)
+    h2_flip.GetYaxis().SetTitle(ytitle)
+    h2_flip.GetYaxis().SetTitleSize(0.04)
+    h2_flip.GetYaxis().SetTitleOffset(1.4)
+    h2_flip.GetYaxis().SetLabelSize(0.05)
+    h2_flip.SetMarkerSize(1.6)
 
-    # 각 파일에 대해 히스토그램 생성 및 설정
-    for idx, file_path in enumerate(file_list):
-        file_name = os.path.basename(file_path).replace(".root", "")
-        
-        # 데이터 프레임 생성 및 필터 적용
-        df = ROOT.RDataFrame(tree, file_path).Range(50000)
-        df = df.Filter("Lep_size == 2 && bJet_size >= 3 && MET_E[0]>30")  # 필터 추가
-        h = df.Histo1D(ROOT.RDF.TH1DModel(title, title, nbin, xmin, xmax), branch)
+    # 캔버스 생성 및 그리기
+    canvas = createCanvas(width=500, height=400, left_margin=0.12)
+    canvas.SetRightMargin(0.14)
+    h2_flip.Draw("COLZ TEXT")
 
-        if h.GetEntries() == 0:
+    # 라벨 및 저장
+    drawTextLabels()
+    saveCanvas(canvas, outdir, PRE, "HH_vs_TopDecay", "", tail="_matrix")
+
+    return h2_flip
+
+
+def drawHistoSame(indir, tree, title, xtitle, ytitle, branch,
+                  nbin, xmin, xmax, PRE, stage, yscale=1.3, normalize=True):
+
+    title = ""
+    outdir = f"./plots/{PRE}/Same/{stage}/"
+    os.makedirs(outdir, exist_ok=True)
+
+    selection_criteria = SELECTIONS[stage]["cut"]
+    XSEC = XSEC_S0  # selection efficiency 안 곱한 원래 cross section
+    lumi = 3000     # 고정 값 (원하면 따로 상수로 빼도 됨)
+
+    processes = ["ttHH", "ttbb", "ttH", "ttw", "tttt"]
+
+    dfs = {}
+    for proc in processes:
+        file_path = indir + PRE + PROCESS_FILES[proc]
+
+        # (1) 전체 이벤트 수 기준 weight
+        total_events = ROOT.RDataFrame(tree, file_path).Sum("SL_weight").GetValue()
+        if total_events == 0:
+            print(f"[WARNING] {proc} has 0 events in total.")
             continue
 
-        if ymax < h.GetMaximum():
-            ymax = h.GetMaximum()
+        xsec = XSEC[proc]
+        weight_expr = f"({xsec} * {lumi}) * SL_weight / {total_events}"
 
-        h.GetXaxis().SetTitle(xtitle)
-        h.GetYaxis().SetTitle(ytitle)
-        h.SetLineColor(colors[idx % len(colors)])  # 색상 리스트에서 순차적으로 할당
-        h.SetLineWidth(2)
-        h.SetStats(0)
+        # (2) weight 정의 → selection 적용
+        df = ROOT.RDataFrame(tree, file_path)
+        df = df.Define("weight", weight_expr)
+        df = df.Filter(selection_criteria)
 
-        legend.AddEntry(h.GetValue(), file_name, "f")
-        hist_dict[branch + "_" + file_name] = h
+        dfs[proc] = df
 
-    # 히스토그램 그리기
-    first = True
-    for h in hist_dict.values():
-        if first:
-            h.SetMaximum(1.2 * ymax)  # 최대값 설정
-            h.DrawNormalized("hist")
-            first = False
-        else:
-            h.DrawNormalized("same")
+    # Style
+    ROOT.gStyle.SetPadTickX(1)
+    ROOT.gStyle.SetPadTickY(1)
+    ROOT.gStyle.SetOptStat(0)
 
-    # 레전드 및 라텍스 추가
-    legend.SetBorderSize(0)
-    legend.Draw()
+    legs = PROCESS_LABELS
+    colors = PROCESS_COLORS
 
-    latex = ROOT.TLatex()
-    latex.SetTextSize(0.025)
-    latex.DrawLatexNDC(0.15, 0.91, "CMS #font[52]{Phase-2 Simulation Preliminary}")
-    latex.DrawLatexNDC(0.67, 0.91, "#font[42]{3000fb^{-1} (#sqrt{s} = 14 TeV)}")
-
-    # 결과 저장
-    title = title.replace(" ", "_")
-    canvas.Print(outdir + PRE + "_" + branch + ".pdf")
-    canvas.Clear()
-
-def drawHistoSame_Single(infile, tree, title, xtitle, ytitle, branch, nbin, xmin, xmax, PRE, tag, yscale):
-    title = ""
-    outdir = "./plots/" + PRE + "/Same/" + tag + "/"
-    try:
-        os.makedirs(outdir)
-    except:
-        pass
-
-    # Load the data
-    _df = ROOT.RDataFrame(tree, infile)
-    df = _df.Filter("process>-100")
-
-    # Filter by process
-    tthh = df.Filter("process==0")
-    tth = df.Filter("process==1")
-    ttzh = df.Filter("process==2")
-    ttbbh = df.Filter("process==3")
-    ttvv = df.Filter("process==4")
-    ttbbv = df.Filter("process==5")
-    ttbb = df.Filter("process==6")
-    ttbbbb = df.Filter("process==7")
-    tttt = df.Filter("process==8")
-
-    # Define DataFrames for plotting
-    dfs = {
-        "ttbb": ttbb, "ttbbbb": ttbbbb, 
-        "ttH": tth, "ttbbH": ttbbh, "ttZH": ttzh,
-        "ttVV": ttvv, "ttbbV": ttbbv, "tttt": tttt,
-        "ttHH": tthh
-    }
-
-    legs = {
-        "ttHH" : "t\\bar{t}HH",
-        "ttH"  : "t\\bar{t}H", "ttbbH" : "t\\bar{t}b\\bar{b}H", "ttZH" : "t\\bar{t}ZH",
-        "ttVV" : "t\\bar{t}VV", "ttbbV" : "t\\bar{t}b\\bar{b}V", 
-        "ttbb" : "t\\bar{t}b\\bar{b}", "ttbbbb" : "t\\bar{t}b\\bar{b}b\\bar{b}", "tttt" : "t\\bar{t}t\\bar{t}"
-    }
-    colors = {
-        "ttHH": ROOT.kBlack,
-        "ttH": ROOT.kGreen-4, "ttbbH": ROOT.kGray+1, "ttZH": ROOT.kViolet-4,
-        "ttVV": ROOT.kOrange-4, "ttbbV": ROOT.kGreen+2, "ttbb": ROOT.kBlue, "ttbbbb": ROOT.kCyan,
-        "tttt": ROOT.TColor.GetColorTransparent(ROOT.kRed, 0.8)
-    }
-
-    # Create canvas and configure
-    canvas = ROOT.TCanvas("c", "c", 400, 400)
-    canvas.SetLeftMargin(0.15)  # Adjust left margin for y-axis label space
-    #canvas.SetLogy()
-
-    # Define legend position based on `lepo` parameter
-    legend = ROOT.TLegend(0.20, 0.88, 0.87, 0.78)
-    legend.SetTextSize(0.025)  # Set legend text size
-    legend.SetEntrySeparation(0.15)  # Space between legend entries
-    legend.SetBorderSize(0)  # No border for legend
-    legend.SetNColumns(5)
+    canvas = createCanvas()
+    legend = createLegend(coords=(0.20, 0.87, 0.87, 0.82), text_size=0.03, entry_sep=0.15, border=0, n_columns=5)
 
     ymax = 0
-    hist_dict = {}
+    bkg_hists = {}
+    sig_hist = None
 
-    # Loop over data frames and create histograms
-    for df_name, df in dfs.items():
-        # Define histogram for each sample
-        h = df.Histo1D(ROOT.RDF.TH1DModel(title, title, nbin, xmin, xmax), branch)
-        
-        # Normalize manually
-        normalization_factor = h.Integral()
-        if normalization_factor > 0:
-            h.Scale(1.0 / normalization_factor)
+    for proc, df in dfs.items():
+        h = df.Histo1D(
+            ROOT.RDF.TH1DModel(f"h_{proc}", title, nbin, xmin, xmax),
+            branch,
+            "weight"
+        )
 
-        # Update ymax to set plot range
+        # (3) normalize 플래그 → 분포만 비교 (unit area)
+        if normalize:
+            integral = h.Integral()
+            if integral != 0:
+                h.Scale(1.0 / integral)
+
         if ymax < h.GetMaximum():
             ymax = h.GetMaximum()
 
-        # Configure axis titles and histogram style
-        h.GetXaxis().SetTitle(xtitle)
-        h.GetXaxis().SetTitleSize(0.04)
-        h.GetYaxis().SetTitle(ytitle)
-        h.GetYaxis().SetTitleSize(0.04)
-        h.SetLineColor(colors[df_name])  # Set line color
-        h.SetLineWidth(3)
-        h.SetStats(0)
+        setHistStyle(h, xtitle, ytitle,
+                     xtitle_size=0.04, ytitle_size=0.05,
+                     xoff=1.0, yoff=1.3)
 
-        # Style for signal (ttHH)
-        if df_name == "ttHH":
-            h.SetLineStyle(7)  # Dashed line style for ttHH
-            h.SetLineWidth(7)
-            legend.AddEntry(h.GetValue(), " " + legs[df_name], "f")  # Line for ttHH
+        xaxis = h.GetXaxis()
+        xaxis.SetBinLabel(xaxis.FindBin(-1), "OS") # Only for SS_OS_DL
+        xaxis.SetBinLabel(xaxis.FindBin( 1), "SS")
+        xaxis.SetLabelSize(0.05)
+        xaxis.CenterLabels(True)
+        #h.GetXaxis().SetNdivisions(505) # Show integer ticks only.
+
+
+        h.SetLineColor(colors[proc])
+
+        if proc == "ttHH":
+            h.SetLineStyle(1)
+            h.SetLineWidth(4)
+            sig_hist = h
         else:
-            h.SetLineStyle(1)  # Solid line for other processes
-            legend.AddEntry(h.GetValue(), " " + legs[df_name], "f")  # Line legend entry
-
-        hist_dict[branch + "_" + df_name] = h
-
-    # Draw histograms with consistent styling
-    first = True
-    for _tmp, h in hist_dict.items():
-        h.SetMaximum(ymax * yscale) # ymax. 3 for kinematics.
-        if first:
-            h.Draw("hist")
-            first = False
-        else:
-            h.Draw("hist same")
-
-    # Draw the legend
-    legend.Draw()
-
-    # Add CMS and luminosity text
-    latex = ROOT.TLatex()
-    latex.SetTextSize(0.028)
-    latex.DrawLatexNDC(0.16, 0.91, "Phase-2 #font[42]{Delphes} #font[52]{Private Work}")
-    latex.DrawLatexNDC(0.64, 0.91, "#font[42]{3000 fb^{-1} (#sqrt{s} = 14 TeV)}")
-
-    # Save the plot
-    title = title.replace(" ", "_")
-    canvas.Print(outdir + PRE + "_" + branch + ".pdf")
-    canvas.Clear()
-
-
-
-def drawHistoSame_Sub(indir, tree, title, xtitle, ytitle, branch, nbin, xmin, xmax, PRE, S, lepo):
-    title = ""
-    outdir = "./plots/" + PRE + "/Same/"
-    try:
-        os.makedirs(outdir)
-    except:
-        pass
-
-    # 샘플 데이터프레임 로드
-    tthh = ROOT.RDataFrame(tree, indir + PRE + "_tthh.root")
-    tth = ROOT.RDataFrame(tree, indir + PRE + "_tth.root")
-    ttbbh = ROOT.RDataFrame(tree, indir + PRE + "_ttbbh.root")
-    ttzha
-    ttvv = ROOT.RDataFrame(tree, indir + PRE + "_ttvv.root")
-    ttbbv = ROOT.RDataFrame(tree, indir + PRE + "_ttbbv.root")
-    ttbb = ROOT.RDataFrame(tree, indir + PRE + "_ttbb.root")
-    ttbbbb = ROOT.RDataFrame(tree, indir + PRE + "_ttbbbb.root")
-    tttt = ROOT.RDataFrame(tree, indir + PRE + "_tttt.root")#.Range(10000)
-
-    # 데이터프레임 딕셔너리
-    _dfs = {"ttHH":tthh, "ttH":tth, "ttbbH":ttbbh, "ttZH":ttzh, "ttVV":ttvv, "ttbbV":ttbbv, "ttbb":ttbb, "ttbbbb":ttbbbb, "tttt":tttt}
-    dfs = {}
-    for key, _df in _dfs.items():
-        dfs[key] = _df.Filter("Lep_size==2").Filter("SS_OS_DL==-1").Filter("bJet_size>=5").Filter("j_ht>300") # modify! #
-    dfs = {"ttHH": tthh, "ttH": tth, "ttbbH": ttbbh, "ttZH": ttzh, 
-           "ttVV": ttvv, "ttbbV": ttbbv, "ttbb": ttbb, "ttbbbb": ttbbbb, "tttt": tttt}
-
-    # 가중치 설정
-    weights = {"ttHH": 1.0, "ttH": 1.0, "ttbbH": 1.0, "ttZH": 1.0, "ttVV": 1.0, "ttbbV": 1.0, "ttbb": 1.0, "ttbbbb": 1.0, "tttt": 1.0}
-#    weights = {"ttHH": 1.0, "ttH": 612, "ttbbH": 2.919, "ttZH": 1.543, "ttVV": 14.62, "ttbbV": 5.011, "ttbb": 2395, "ttbbbb": 8.918, "tttt": 11.81}
-
-    colors = {
-        "ttHH": ROOT.kBlack,
-        "ttH": ROOT.kGray+1, "ttbbH": ROOT.kGray + 3, "ttZH": ROOT.kGray + 5,
-        "ttVV": ROOT.kGreen, "ttbbV": ROOT.kGreen + 2,
-        "ttbb": ROOT.kBlue, "ttbbbb": ROOT.kCyan,
-        "tttt": ROOT.kRed
-    }
-
-    ROOT.gStyle.SetPadTickX(1)  # X축 위쪽에 tick 추가
-    ROOT.gStyle.SetPadTickY(1)  # Y축 오른쪽에 tick 추가
-
-    canvas = ROOT.TCanvas("c", "c", 800, 900)
-    canvas.SetLeftMargin(0.15)
-
-    pad1 = ROOT.TPad("pad1", "pad1", 0, 0.3, 1, 1.0)
-    pad1.SetBottomMargin(0.025)  # 하단 마진 제거
-    pad1.Draw()
-    pad2 = ROOT.TPad("pad2", "pad2", 0, 0.07, 1, 0.3)
-    pad2.SetTopMargin(0.025)  # 상단 마진 제거
-    pad2.SetBottomMargin(0.25)  # 비율 플롯의 라벨을 위한 공간 확보
-    pad2.Draw()
-
-    pad1.cd()  # 메인 플롯 그리기
-    legend_position = {1: (0.72, 0.84, 0.87, 0.46), 2: (0.38, 0.855, 0.57, 0.705), 3: (0.26, 0.855, 0.45, 0.705)}
-    legend = ROOT.TLegend(*legend_position.get(lepo, legend_position[3]))
-    legend.SetTextSize(0.028)
-    legend.SetEntrySeparation(0.20)
-
-    hist_dict = {}
-    ymax = 0
-    sum_hist = None
-    for df_name, df in dfs.items():
-        h = df.Histo1D(ROOT.RDF.TH1DModel(title, title, nbin, xmin, xmax), branch)
-        if ymax < h.GetMaximum():
-            ymax = h.GetMaximum()
-
-        h.GetXaxis().SetTitle(xtitle)
-        h.GetXaxis().SetLabelSize(0)
-        h.GetYaxis().SetTitle(ytitle)
-        h.SetLineColor(colors[df_name])
-        h.SetLineWidth(2)
-        h.SetStats(0)
-
-        if df_name == "ttHH":
-            h.SetLineStyle(2)  # Dashed line style
-            h.SetLineWidth(4)  # Thick line
-            legend.AddEntry(h.GetValue(), " " + "t\\bar{t}HH", "f")
-        else:
-            legend.AddEntry(h.GetValue(), " " + df_name, "f")
-            if sum_hist is None:
-                sum_hist = h.Clone("weight_sum")
-            else:
-                sum_hist.Add(h.GetValue(), weights[df_name])  # 개별 가중치 적용
-        
-        hist_dict[branch + "_" + df_name] = h
-
-    first = True
-    for _tmp, h in hist_dict.items():
-        if first:
-            h.SetMaximum(1.4 * ymax)
-            h.DrawNormalized("hist")
-            first = False
-        else:
-            h.DrawNormalized("same")
-
-    ratio_hist = hist_dict[branch + "_" + "ttHH"].Clone("ratio")
-    sum_hist.Scale(1.0 / sum_hist.Integral())
-    ratio_hist.Scale(1.0 / ratio_hist.Integral())
-    ratio_hist.Divide(sum_hist)
-    pad2.cd()  # 비율 플롯 그리기
-    ratio_hist.GetXaxis().SetTitle(xtitle)
-    ratio_hist.GetXaxis().SetTitleSize(0.11)
-    ratio_hist.GetXaxis().SetLabelSize(0.1)
-    ratio_hist.SetTitle("")
-    ratio_hist.GetYaxis().SetTitle("Sig/Bkg")
-    ratio_hist.GetYaxis().SetTitleSize(0.1)
-    ratio_hist.GetYaxis().SetTitleOffset(0.25)
-    ratio_hist.GetYaxis().SetLabelSize(0.05)
-    ratio_hist.SetLineColor(ROOT.kBlack)
-    ratio_hist.SetMinimum(0)  # 비율 플롯의 최소값 설정
-    ratio_hist.SetMaximum(2)  # 비율 플롯의 최대값 설정
-    ratio_hist.Draw("ep")
-    line = ROOT.TLine(ratio_hist.GetXaxis().GetXmin(), 1, ratio_hist.GetXaxis().GetXmax(), 1)  # 수평선 생성
-    line.SetLineColor(ROOT.kRed)  # 선의 색상 설정 (예: 빨간색)
-    line.SetLineWidth(2)  # 선의 두께 설정
-    line.SetLineStyle(2)  # 선 스타일 설정 (예: 점선)
-    line.Draw()  # 수평선 그리기
-
-    pad1.cd()
-    legend.SetBorderSize(0)
-    legend.Draw()
-    latex = ROOT.TLatex()
-    latex.SetTextSize(0.025)
-    latex.DrawLatexNDC(0.15, 0.84, "MadGraph5 Simulation")
-    latex.DrawLatexNDC(0.70, 0.91, "HL-LHC, \\sqrt{s} = 14 TeV")
-    title = title.replace(" ", "_")
-    canvas.Print(outdir + PRE + "_" + S + "_" + branch + ".pdf")
-    canvas.Clear()
-
-def drawHistoSame_Single_Sub(infile, tree, title, xtitle, ytitle, branch, nbin, xmin, xmax, PRE, lepo):
-    title = ""
-    outdir = "./plots/" + PRE + "/Same/"
-    try:
-        os.makedirs(outdir)
-    except:
-        pass
-
-    df = ROOT.RDataFrame(tree, infile)
-
-    # G1, G2, G3, G4로 필터링
-    G1 = df.Filter("category == 0").Filter("higgs_mass>=0")
-    G2 = df.Filter("category == 1").Filter("higgs_mass>=0")
-    G3 = df.Filter("category == 2").Filter("higgs_mass>=0")
-    G4 = df.Filter("category == 3").Filter("higgs_mass>=0")
-
-    # 데이터프레임 딕셔너리
-    dfs = {"G1": G1, "G2": G2, "G3": G3, "G4": G4}
-
-    # G1도 포함하여 가중치 명시
-    weights = {"G1": 1.0, "G2": 1.0, "G3": 1.0, "G4": 1.0}
-
-    # 색상 설정
-    colors = {
-        "G1": ROOT.kBlack,
-        "G2": ROOT.TColor.GetColorTransparent(ROOT.kBlue, 0.6),  # 50% 투명도
-        "G3": ROOT.TColor.GetColorTransparent(ROOT.kRed, 0.6),    # 50% 투명도
-        "G4": ROOT.TColor.GetColorTransparent(ROOT.kGreen + 2, 0.6)  # 50% 투명도
-    }
-
-    # 레전드 라벨 설정
-    legs = {
-        "G1": "t\\bar{t}HH",
-        "G2": "t\\bar{t}H",
-        "G3": "t\\bar{t}b\\bar{b}b\\bar{b}",
-        "G4": "t\\bar{t}t\\bar{t}"
-    }
-
-    ROOT.gStyle.SetPadTickX(1)  # X축 위쪽에 tick 추가
-    ROOT.gStyle.SetPadTickY(1)  # Y축 오른쪽에 tick 추가
-
-    canvas = ROOT.TCanvas("c", "c", 800, 900)
-    canvas.SetLeftMargin(0.15)
-
-    pad1 = ROOT.TPad("pad1", "pad1", 0, 0.3, 1, 1.0)
-    pad1.SetBottomMargin(0.025)
-    pad1.Draw()
-    pad2 = ROOT.TPad("pad2", "pad2", 0, 0.07, 1, 0.3)
-    pad2.SetTopMargin(0.025)
-    pad2.SetBottomMargin(0.25)
-    pad2.Draw()
-    pad1.cd()
-
-    ymax, color = 0, 1
-
-    # 범례 위치 설정
-    legend_position = {1: (0.69, 0.84, 0.87, 0.46), 2: (0.38, 0.855, 0.57, 0.705), 3: (0.26, 0.855, 0.45, 0.705)}
-    legend = ROOT.TLegend(*legend_position.get(lepo, legend_position[3]))
-    legend = ROOT.TLegend(*legend_position.get(lepo, legend_position[3]))
-    legend.SetTextSize(0.028)
-    legend.SetEntrySeparation(0.20)
-
-    hist_dict = {}
-    sum_hist = None
-
-    # 히스토그램 생성 및 꾸미기
-    for df_name, df in dfs.items():
-        h = df.Histo1D(ROOT.RDF.TH1DModel(title, title, nbin, xmin, xmax), branch)
-        if ymax < h.GetMaximum():
-            ymax = h.GetMaximum()
-
-        h.GetXaxis().SetTitle(xtitle)
-        h.GetXaxis().SetLabelSize(0)
-        h.GetYaxis().SetTitle(ytitle)
-        h.SetLineColor(colors[df_name])
-        h.SetLineWidth(2)
-        h.SetStats(0)
-
-        # 범례에 라벨 추가
-        legend.AddEntry(h.GetValue(), legs[df_name], "f")
-
-        if df_name == "G1":
-            h.SetLineStyle(2)  # Dashed line style
-            h.SetLineWidth(4)  # Thick line
-        else:
-            if sum_hist is None:
-                sum_hist = h.Clone("weight_sum")
-            else:
-                sum_hist.Add(h.GetValue(), weights[df_name])
-
-        hist_dict[branch + "_" + df_name] = h
-
-    first = True
-    for _tmp, h in hist_dict.items():
-        h.SetMaximum(1.4 * ymax)
-        if first:
-            h.DrawNormalized("hist")
-            first = False
-        else:
-            h.DrawNormalized("same")
-
-    # 비율 히스토그램 생성 및 그리기
-    ratio_hist = hist_dict[branch + "_" + "G1"].Clone("ratio")
-    sum_hist.Scale(1.0 / sum_hist.Integral())
-    ratio_hist.Scale(1.0 / ratio_hist.Integral())
-    ratio_hist.Divide(sum_hist)
-
-    pad2.cd()
-    ratio_hist.GetXaxis().SetTitle(xtitle)
-    ratio_hist.GetXaxis().SetTitleSize(0.11)
-    ratio_hist.GetXaxis().SetLabelSize(0.1)
-    ratio_hist.SetTitle("")
-    ratio_hist.GetYaxis().SetTitle("Sig/Bkg")
-    ratio_hist.GetYaxis().SetTitleSize(0.1)
-    ratio_hist.GetYaxis().SetTitleOffset(0.25)
-    ratio_hist.GetYaxis().SetLabelSize(0.05)
-    ratio_hist.SetLineColor(ROOT.kBlack)
-    ratio_hist.SetMinimum(0)
-    ratio_hist.SetMaximum(2)
-    ratio_hist.Draw("ep")
-
-    line = ROOT.TLine(ratio_hist.GetXaxis().GetXmin(), 1, ratio_hist.GetXaxis().GetXmax(), 1)
-    line.SetLineColor(ROOT.kRed)
-    line.SetLineWidth(2)
-    line.SetLineStyle(2)
-    line.Draw()
-
-    pad1.cd()
-    legend.SetBorderSize(0)
-    legend.Draw()
-
-    latex = ROOT.TLatex()
-    latex.SetTextSize(0.025)
-    latex.DrawLatexNDC(0.15, 0.91, "CMS #font[52]{Phase-2 Simulation Preliminary}")
-    latex.DrawLatexNDC(0.67, 0.91, "#font[52]{3000fb^{-1} (#sqrt{s} = 14 TeV)}")
-
-    title = title.replace(" ", "_")
-    canvas.Print(outdir + PRE + "_" + branch + ".pdf")
-    canvas.Clear()
-
-
-def drawHistoStack_Single(infile, tree, title, xtitle, ytitle, branch, nbin, xmin, xmax, PRE, lepo):
-    title = ""
-    outdir = "./plots/" + PRE + "/Stack/"
-    try:
-        os.makedirs(outdir)
-    except:
-        pass
-
-    # 데이터를 읽어들임
-    df = ROOT.RDataFrame(tree, infile)
-
-    # Scale Factor s.t. ttbb = 5368
-#    weights = {"G1": 19, "G2": 2093, "G3": 919, "G4": 769} #SSDL
-    weights = {"G1": 13, "G2": 1000, "G3": 4500, "G4": 413} #OSDL
-
-
-    G1 = df.Filter("category==3")
-    h_G1 = G1.Histo1D(("G1_hist", "G1_hist", nbin, xmin, xmax), branch)
-    total_G1 = h_G1.Integral()
-    SF = 1 / total_G1
-    scaled_weights = {key: value * SF for key, value in weights.items()}
-
-    # 각 카테고리에 새로운 가중치 적용
-    G1 = df.Filter("category==0").Define("weight", f"{scaled_weights['G1']*300}")
-    G2 = df.Filter("category==1").Define("weight", f"{scaled_weights['G2']}")
-    G3 = df.Filter("category==2").Define("weight", f"{scaled_weights['G3']}")
-    G4 = df.Filter("category==3").Define("weight", f"{scaled_weights['G4']}")
-
-    dfs = {"G1": G1, "G2": G2, "G3": G3, "G4": G4}
-    colors = {
-        "G1": ROOT.kBlack,
-        "G2": ROOT.TColor.GetColorTransparent(ROOT.kBlue, 0.6),  # 50% 투명도
-        "G3": ROOT.TColor.GetColorTransparent(ROOT.kRed, 0.6),    # 50% 투명도
-        "G4": ROOT.TColor.GetColorTransparent(ROOT.kGreen + 2, 0.6)  # 50% 투명도
-    }
-
-    canvas = ROOT.TCanvas("c", "c", 800, 800)
-    canvas.SetLeftMargin(0.15)  # Adjust the left margin to make space for the y-axis label
-    canvas.SetLogy()  # Use logarithmic scale for the y-axis
-
-    ymax, color = 0, 1
-    if lepo == 1:
-        legend = ROOT.TLegend(0.65, 0.83, 0.85, 0.68)  # Upper Right #
-    elif lepo == 2:
-        legend = ROOT.TLegend(0.38, 0.855, 0.57, 0.705)  # Center #
-    else:
-        legend = ROOT.TLegend(0.26, 0.855, 0.45, 0.705)  # Upper Left #
-    legs = {"G1" : "G1", "G2" : "G2", "G3" : "G3", "G4" : "G4"}
-    legend.SetTextSize(0.035)  # Adjust this value to make the legend larger or smaller
-    legend.SetEntrySeparation(0.02)  # Adjust the separation between legend entries
-
-    hist_dict = {}
-    stack = ROOT.THStack("hs", title)
-    for df_name, df in dfs.items():
-        h = df.Histo1D(ROOT.RDF.TH1DModel(title, title, nbin, xmin, xmax), branch, "weight")
-        if ymax < h.GetMaximum():
-            ymax = h.GetMaximum()
-        h.GetXaxis().SetTitle(xtitle)
-        h.GetYaxis().SetTitle(ytitle)
-        h.SetLineColor(colors[df_name])
-
-#        h.SetLineColor(color)
-        h.SetLineWidth(2)
-        h.SetStats(0)
-        if df_name != "G1":
-            if color in [5]:
-                color += 1
-            h.SetFillColor(colors[df_name])
-            legend.AddEntry(h.GetValue(), " " + legs[df_name] , "f")  # Filled area
-        else:
-            h.SetLineStyle(2)  # 점선 스타일 설정
-            h.SetLineColor(ROOT.kBlack)  # 검은색으로 설정
+            h.SetLineStyle(1)
             h.SetLineWidth(3)
-            legend.AddEntry(h.GetValue(), " " + legs[df_name] + " (x300)", "l")  # Line
-        color += 1
-        hist_dict[branch + "_" + df_name] = h
-        if df_name != "G1":
-            stack.Add(h.GetValue())
+            bkg_hists[proc] = h
+
+    # Draw
+    first = True
+    for name, h in bkg_hists.items():
+        h.SetMaximum(ymax * yscale)
+        h.Draw("hist" if first else "hist same")
+        first = False
+        legend.AddEntry(h.GetValue(), " " + legs[name], "f")
+
+    if sig_hist:
+        sig_hist.SetMaximum(ymax * yscale)
+        sig_hist.Draw("hist same")
+        legend.AddEntry(sig_hist.GetValue(), " " + legs["ttHH"], "f")
+
+    legend.Draw()
+    drawTextLabels()
+
+    tail = "_norm" if normalize else "_real"
+    saveCanvas(canvas, outdir, PRE, branch, title, tail=tail)
+
+
+def drawHistoStack(indir, tree, title, xtitle, ytitle, branch,
+                   nbin, xmin, xmax, PRE, stage, yscale=100, lumi=3000):
+    title = ""
+    outdir = f"./plots/{PRE}/Stack/{stage}/"
+    os.makedirs(outdir, exist_ok=True)
+
+    sel = SELECTIONS[stage]
+    selection_criteria = sel["cut"]
+    XSEC = XSEC_S0
+
+    processes = ["ttHH", "ttZH", "ttbbV", "ttbbH", "ttVV", "tttt", "ttbb", "ttH", "ttw"]
+
+    dfs = {}
+    for proc in processes:
+        file_path = indir + PRE + PROCESS_FILES[proc]
+        df = ROOT.RDataFrame(tree, file_path).Filter(selection_criteria)
+        total_events = ROOT.RDataFrame(tree, file_path).Sum("SL_weight").GetValue()
+        df = df.Define("weight", f"({XSEC[proc]} * {lumi}) * SL_weight / {total_events}")
+        dfs[proc] = df
+
+    # canvas
+    canvas = createCanvas()
+    canvas.SetLogy()
+    legend = createLegend()
+    stack = ROOT.THStack("hs", title)
+
+    # histogram dict
+    histograms = {}
+    ymax = 0
+    signal_hist = None
+
+    for proc in processes:
+        df = dfs[proc]
+        hptr = df.Histo1D(ROOT.RDF.TH1DModel(proc + "_" + branch, proc, nbin, xmin, xmax),
+                          branch, "weight")
+        h = hptr.GetValue()
+        setHistStyle(h, xtitle, ytitle)
+        h.SetLineColor(PROCESS_COLORS[proc])
+        h.SetLineWidth(2)
+
+        if h.GetMaximum() > ymax:
+            ymax = h.GetMaximum()
+
+        if proc == "ttHH":
+            h.SetLineStyle(1)
+            h.SetLineWidth(5)
+            signal_hist = h.Clone("signal_overlay")
+            legend.AddEntry(h, " " + PROCESS_LABELS[proc], "l")
+        else:
+            h.SetFillColor(PROCESS_COLORS[proc])
+            stack.Add(h)
+            legend.AddEntry(h, " " + PROCESS_LABELS[proc], "f")
+
+        histograms[proc] = h
+
+    # stack draw
+    stack.Draw("hist")
+    stack.SetMaximum(ymax * yscale)
+    stack.SetMinimum(0.01)
+    setStackStyle(stack, xtitle, ytitle)
+
+    # overlay signal
+    if signal_hist:
+        signal_hist.Draw("hist same")
+
+    legend.Draw()
+    drawTextLabels()
+    saveCanvas(canvas, outdir, PRE, branch, title)
+
+def drawHistoStack_Group(indir, tree, title, xtitle, ytitle, branch,
+                         nbin, xmin, xmax, PRE, stage, yscale=1.8, signal_scale=584):
+    title = ""
+    outdir = f"./plots/{PRE}/StackGroup/{stage}/"
+    os.makedirs(outdir, exist_ok=True)
+
+    sel = SELECTIONS[stage]
+    selection_criteria = sel["cut"]
+    XSEC = XSEC_S0
+    lumi=3000
+
+    all_procs = sum(GROUPS.values(), [])  # flatten list
+    dfs = {}
+    for proc in all_procs:
+        file_path = indir + PRE + PROCESS_FILES[proc]
+        df = ROOT.RDataFrame(tree, file_path).Filter(selection_criteria)
+        total_events = ROOT.RDataFrame(tree, file_path).Sum("SL_weight").GetValue()
+        df = df.Define("weight", f"({XSEC[proc]} * {lumi}) * SL_weight / {total_events}")
+        dfs[proc] = df
+
+    # canvas
+    canvas = createCanvas()
+    #canvas.SetLogy()
+    legend = createLegend(coords=(0.19, 0.87, 0.88, 0.82), text_size=0.03, entry_sep=0.15, border=0, n_columns=5)
+    stack = ROOT.THStack("hs", title)
+
+    ymax = 0
+    signal_hist = None
+
+    for group_name, proc_list in GROUPS.items():
+        # 그룹별 histogram 생성 및 병합
+        hsum = None
+        for proc in proc_list:
+            hptr = dfs[proc].Histo1D(
+                ROOT.RDF.TH1DModel(f"{proc}_{branch}", proc, nbin, xmin, xmax),
+                branch, "weight")
+            h = hptr.GetValue()
+            if hsum is None:
+                hsum = h.Clone(f"{group_name}_sum")
+                hsum.SetDirectory(0)
+            else:
+                hsum.Add(h)
+
+        setHistStyle(hsum, xtitle, ytitle, xtitle_size=0.20, ytitle_size=0.20, xoff=1.2, yoff=1.2, line_width=3)
+        hsum.SetLineColor(GROUP_COLORS[group_name])
+        hsum.SetLineWidth(2)
+        hsum.SetFillColor(GROUP_COLORS[group_name])
+
+        if hsum.GetMaximum() > ymax:
+            ymax = hsum.GetMaximum()
+
+        if group_name == "ttHH":
+            hsum.Scale(signal_scale)
+            hsum.SetLineWidth(5)
+            hsum.SetLineStyle(1)
+            hsum.SetFillStyle(0)
+            signal_hist = hsum.Clone("signal_overlay")
+            legend.AddEntry(hsum, f" {GROUP_LABELS[group_name]}#times {signal_scale}", "l")
+        else:
+            stack.Add(hsum)
+            legend.AddEntry(hsum, " " + GROUP_LABELS[group_name], "f")
 
     stack.Draw("hist")
-    stack.GetXaxis().SetTitle(xtitle)
-    stack.GetYaxis().SetTitle(ytitle)
-    stack.SetMaximum(ymax * 1.2)
+    stack.SetMaximum(ymax * yscale)
+    stack.SetMinimum(0.01)
+    setStackStyle(stack, xtitle, ytitle, ytitle_offset=1.5)
 
-    # "tthh" 히스토그램을 점선으로 추가
-    hist_dict[branch + "_G1"].Draw("hist same")
+    if signal_hist:
+        signal_hist.Draw("hist same")
 
-    legend.SetBorderSize(0)
     legend.Draw()
-    latex = ROOT.TLatex()
-    latex.SetTextSize(0.025)
-    latex.DrawLatexNDC(0.15, 0.91, "Delphes")
-    latex.DrawLatexNDC(0.55, 0.91, "HL-LHC (#sqrt{s} =14TeV, L = 3000fb^{-1})")
+    drawTextLabels()
+    saveCanvas(canvas, outdir, PRE, branch, title)
 
-    title = title.replace(" ", "_")
-    canvas.Print(outdir + PRE + "_" + branch + ".pdf")
-    canvas.Clear()
-    print(outdir + PRE + "_" + branch + ".pdf")
+######## Single input file #########
+
+def drawHistoSame_SingleFile(
+    infile, tree, title, xtitle, ytitle, branch,
+    nbin, xmin, xmax, PRE, stage,
+    normalize=True, yscale=1.3
+):
+    title = ""
+    outdir = f"./plots/{PRE}/Same/{stage}/"
+    os.makedirs(outdir, exist_ok=True)
+
+    lumi = 3000
+    XSEC = XSEC_S0
+    processes = ["ttHH", "ttbb", "ttH", "ttw", "tttt"]
+
+    dfs = {}
+    for proc in processes:
+        df = ROOT.RDataFrame(tree, infile)\
+                .Filter(PROCESS_FILTERS[proc])
+        total_events = df.Sum("SL_weight").GetValue()
+        if total_events == 0:
+            print(f"[WARNING] {proc} has 0 events.")
+            continue
+        weight_expr = f"({XSEC[proc]} * {lumi}) * SL_weight / {total_events}"
+        df = df.Define("weight", weight_expr)
+        dfs[proc] = df
+
+    # 스타일
+    ROOT.gStyle.SetPadTickX(1)
+    ROOT.gStyle.SetPadTickY(1)
+    ROOT.gStyle.SetOptStat(0)
+
+    canvas = createCanvas()
+    legend = createLegend(coords=(0.20, 0.87, 0.87, 0.82),
+                          text_size=0.03, entry_sep=0.15, border=0, n_columns=5)
+
+    ymax = 0
+    bkg_hists = {}
+    sig_hist = None
+
+    for proc, df in dfs.items():
+        h = df.Histo1D(
+            ROOT.RDF.TH1DModel(f"h_{proc}", title, nbin, xmin, xmax),
+            branch,
+            "weight"
+        )
+
+        if normalize:
+            integral = h.Integral()
+            if integral != 0:
+                h.Scale(1.0 / integral)
+
+        if h.GetMaximum() > ymax:
+            ymax = h.GetMaximum()
+
+        setHistStyle(h, xtitle, ytitle,
+                     xtitle_size=0.04, ytitle_size=0.05,
+                     xoff=1.0, yoff=1.4)
+
+        h.SetLineColor(PROCESS_COLORS[proc])
+
+        if proc == "ttHH":
+            h.SetLineStyle(1)
+            h.SetLineWidth(4)
+            sig_hist = h
+        else:
+            h.SetLineStyle(1)
+            h.SetLineWidth(3)
+            bkg_hists[proc] = h
+
+    # 그리기
+    first = True
+    for name, h in bkg_hists.items():
+        h.SetMaximum(ymax * yscale)
+        h.Draw("hist" if first else "hist same")
+        legend.AddEntry(h.GetValue(), " " + PROCESS_LABELS[name], "f")
+        first = False
+
+    if sig_hist:
+        sig_hist.SetMaximum(ymax * yscale)
+        sig_hist.Draw("hist same")
+        legend.AddEntry(sig_hist.GetValue(), " " + PROCESS_LABELS["ttHH"], "f")
+
+    legend.Draw()
+    drawTextLabels()
+
+    tail = "_norm" if normalize else "_real"
+    saveCanvas(canvas, outdir, PRE, branch, title, tail=tail)
 

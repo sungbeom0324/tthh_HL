@@ -1,123 +1,119 @@
 # at your wd, python cutflow/cutflow.py
 import ROOT
+import uproot
 import numpy as np
+import pandas as pd
 
 # Criteria
-PRE = "di"
+indir = "./skimmed/test/"
+PRE = "test"
 Tree = "Delphes"
-print(PRE)
+input_0 = ["Lep_size", "SS_OS_DL", "MET_E", "bJet_size", "bCat_higgs4_2Mat", "Chi_min_Higgs1", "SL_weight", "bJet1_m", "bJet2_m", "bJet3_m", "bJet4_m"]
 
-# Input
-tthh = "skimmed/" + PRE + "_tthh.root"
-tth = "skimmed/" + PRE + "_tth.root"
-ttbbh = "skimmed/" + PRE + "_ttbbh.root"
-ttzh = "skimmed/" + PRE + "_ttzh.root"
-ttvv = "skimmed/" + PRE + "_ttvv.root"
-ttbbv = "skimmed/" + PRE + "_ttbbv.root"
-ttbb = "skimmed/" + PRE + "_ttbb.root"
-ttbbbb = "skimmed/" + PRE + "_ttbbbb.root"
-tttt = "skimmed/" + PRE + "_tttt.root"
-tt = "skimmed/" + PRE + "_tt.root"
-
-TreeName = "Delphes"
+# Input files
+tthh = indir + PRE + "_tthh.root"
+tth = indir + PRE + "_tth.root"
+ttbbh = indir + PRE + "_ttbbh.root"
+ttzh = indir + PRE + "_ttzh.root"
+ttvv = indir + PRE + "_ttvv.root"
+ttbbv = indir + PRE + "_ttbbv.root"
+ttbb = indir + PRE + "_ttbb.root"
+tttt = indir + PRE + "_tttt.root"
+ttw = indir + PRE + "_ttw.root"
 
 # Luminosity [fb^-1]
 L = 3000
-#BR = 1.0
-#BR = 0.438 # Semileptonic
-BR = 0.105 # Dileptonic
+BR = 0.543 # SL + DL
 
-# [HLLHC : Inclusive, fb]
-x_tthh  = 0.948 * L * BR
-x_tth   = 612 * L * BR
-x_ttbbh = 15.6 * L * BR
-x_ttzh  = 1.71 * L * BR
-x_ttvv  = 13.52 * L * BR
-x_ttbbv = 27.36 * L * BR
-x_ttbb =  1549 * L * BR  # Before 2661
-x_ttbbbb =  370 * L * BR
-x_tttt = 11.81 * L
-x_tt = 760800 * L * BR
-
-#
-crossx = {"x_tthh" : x_tthh, "x_tth" : x_tth, "x_ttbbh" : x_ttbbh, "x_ttzh" : x_ttzh, "x_ttvv" : x_ttvv, "x_ttbbv" : x_ttbbv, "x_ttbb" : x_ttbb, "x_ttbbbb" : x_ttbbbb, "x_tttt" : x_tttt, "x_tt":x_tt}
-for key, val in crossx.items():
-    print(key+" : "+str(round(val/3000.,2)))
-
-# RDF
-tthh = ROOT.RDataFrame(Tree, tthh)
-tth = ROOT.RDataFrame(Tree, tth)
-ttbbh = ROOT.RDataFrame(Tree, ttbbh)
-ttzh = ROOT.RDataFrame(Tree, ttzh)
-ttvv = ROOT.RDataFrame(Tree, ttvv)
-ttbbv = ROOT.RDataFrame(Tree, ttbbv)
-ttbb = ROOT.RDataFrame(Tree, ttbb)
-ttbbbb = ROOT.RDataFrame(Tree, ttbbbb)
-tttt = ROOT.RDataFrame(Tree, tttt)
-tt = ROOT.RDataFrame(Tree, tt)
-
-print("Calculating Acceptance and Cutflow")
-
-# MODIFY!! E.S.
-def Acceptance(df, df_name):
-    Accept = []
-    S0 = float(df.Count().GetValue())
-    df = df.Filter("Lep_size == 2 && SS_OS_DL==1 && MET_E[0]>30"); S1 = float(df.Count().GetValue())
-    df = df.Filter("bJet_size >= 3"); S2 = float(df.Count().GetValue())
-    df = df.Filter("j_ht >= 300"); S3 = float(df.Count().GetValue())
-    DNN = 1.0
-#    df = df.Filter("Lep_size == 2 && SS_OS_DL == -1"); S1 = float(df.Count().GetValue())
-#    df = df.Filter("bJet_size >= 5"); S2 = float(df.Count().GetValue())
-#    df = df.Filter("j_ht>300"); S3 = float(df.Count().GetValue())
-#    DNN = float(input(f"{df_name} DNN Efficiency SSDL = "))
-    S4 = S3 * DNN
-    Accept.extend([S0,S1,S2,S3,S4])
-    print(Accept)
-    return Accept
-
-print("________ACCEPTANCE________")
-tthh = Acceptance(tthh, "tthh")
-tth = Acceptance(tth, "tth")
-ttbbh = Acceptance(ttbbh, "ttbbh")
-ttzh = Acceptance(ttzh, "ttzh")
-ttvv = Acceptance(ttvv, "ttvv")
-ttbbv = Acceptance(ttbbv, "ttbbv")
-ttbb = Acceptance(ttbb, "ttbb")
-ttbbbb = Acceptance(ttbbbb, "ttbbbb")
-tttt = Acceptance(tttt, "tttt")
-tt = Acceptance(tt, "tt")
-
-Acc = {     # Normalize Acceptance to the cross section * L.
-    "tthh" : [tthh, x_tthh/tthh[0]], 
-    "tth" : [tth, x_tth/tth[0]],
-    "ttbbh" : [ttbbh, x_ttbbh/ttbbh[0]],
-    "ttzh" : [ttzh, x_ttzh/ttzh[0]],
-    "ttvv" : [ttvv, x_ttvv/ttvv[0]],
-    "ttbbv" : [ttbbv, x_ttbbv/ttbbv[0]],
-    "ttbb" : [ttbb, x_ttbb/ttbb[0]],
-    "ttbbbb" : [ttbbbb, x_ttbbbb/ttbbbb[0]],
-    "tttt" : [tttt, x_tttt/tttt[0]],
-    "tt" : [tt, x_tt/tt[0]]
+# [HLLHC : Inclusive, fb] 0.10669
+expN = {
+    "tthh"  : 0.949 * BR * L,
+    "ttbb"  :  1555 * BR * L,
+    "ttw" : 719.4 * BR * L,
+    "tth"   : 677.4 * BR * L,
+    "ttbbv" : 27.6 * BR * L,
+    "tttt" : 17.0 * L,
+    "ttbbh" : 15.6 * BR * L,
+    "ttvv"  : 13.49 * L,
+    "ttzh"  : 1.55 * L
 }
 
-# Cutflow
-def Cutflow(Acc):
-    for key, value in Acc.items():
-        value[0] = [element * value[1] for element in value[0]] # value[0] = [S0,S1,S2,S3], value[1] = Weight.
-        rounded = [round(num, 2) for num in value[0]]
-        print(key, rounded)
-    return Acc
+for key, val in expN.items():
+    print(key + " : " + str(round(val / 3000., 3)))
+
+weights = {} # ExpectedEvents / MCGenerated
+# Load data using uproot
+tthh = uproot.open(tthh)[Tree].arrays(input_0, library="pd").sample(frac=1).reset_index(drop=True); weights["tthh"]=expN["tthh"]/ (tthh["SL_weight"].sum())
+ttbb = uproot.open(ttbb)[Tree].arrays(input_0, library="pd").sample(frac=1).reset_index(drop=True); weights["ttbb"]=expN["ttbb"]/ (ttbb["SL_weight"].sum())
+ttw = uproot.open(ttw)[Tree].arrays(input_0, library="pd").sample(frac=1).reset_index(drop=True); weights["ttw"]=expN["ttw"]/ (ttw["SL_weight"].sum())
+tth = uproot.open(tth)[Tree].arrays(input_0, library="pd").sample(frac=1).reset_index(drop=True); weights["tth"]=expN["tth"]/ (tth["SL_weight"].sum())
+ttbbv = uproot.open(ttbbv)[Tree].arrays(input_0, library="pd").sample(frac=1).reset_index(drop=True); weights["ttbbv"]=expN["ttbbv"]/ (ttbbv["SL_weight"].sum())
+tttt = uproot.open(tttt)[Tree].arrays(input_0, library="pd").sample(frac=1).reset_index(drop=True); weights["tttt"]=expN["tttt"]/ (tttt["SL_weight"].sum())
+ttbbh = uproot.open(ttbbh)[Tree].arrays(input_0, library="pd").sample(frac=1).reset_index(drop=True); weights["ttbbh"]=expN["ttbbh"]/ (ttbbh["SL_weight"].sum())
+ttvv = uproot.open(ttvv)[Tree].arrays(input_0, library="pd").sample(frac=1).reset_index(drop=True); weights["ttvv"]=expN["ttvv"]/ (ttvv["SL_weight"].sum())
+ttzh = uproot.open(ttzh)[Tree].arrays(input_0, library="pd").sample(frac=1).reset_index(drop=True); weights["ttzh"]=expN["ttzh"]/ (ttzh["SL_weight"].sum())
+
+print("Define Event Selections")
+def Acceptance(df, df_name):
+    Accept = []
+    S0 = df['SL_weight'].sum()
+    df = df[df['Lep_size'] ==2]; S1 = df['SL_weight'].sum() # Cut yields for each selection.
+    df = df[df['SS_OS_DL'] == 1]; S2 = df['SL_weight'].sum()
+    df = df[df['MET_E'] > 30]; S3 = df['SL_weight'].sum()
+    df = df[df['bJet_size'] >= 4]; S4 = df['SL_weight'].sum()
+    Accept.extend([S0, S1, S2, S3, S4])
+    print(Accept)
+    return Accept, df
+
+print("________Calculate ACCEPTANCE________")
+tthh_acc, tthh = Acceptance(tthh, "tthh")
+ttbb_acc, ttbb = Acceptance(ttbb, "ttbb")
+ttw_acc, ttw = Acceptance(ttw, "ttw")
+tth_acc, tth = Acceptance(tth, "tth")
+ttbbv_acc, ttbbv = Acceptance(ttbbv, "ttbbv")
+tttt_acc, tttt = Acceptance(tttt, "tttt")
+ttbbh_acc, ttbbh = Acceptance(ttbbh, "ttbbh")
+ttvv_acc, ttvv = Acceptance(ttvv, "ttvv")
+ttzh_acc, ttzh = Acceptance(ttzh, "ttzh")
+
+# Create Dictionary for Acceptance.
+Acc = {
+    "tthh" : tthh_acc,
+    "ttbb" : ttbb_acc,
+    "ttw" : ttw_acc,
+    "tth" : tth_acc,
+    "ttbbv" : ttbbv_acc,
+    "tttt" : tttt_acc,
+    "ttbbh" : ttbbh_acc,
+    "ttvv" : ttvv_acc,
+    "ttzh" : ttzh_acc
+}
+
+def Cutflow(Acc, weights):
+    CF_dict = {}
+    for key, acc_list in Acc.items():
+        weighted = [round(val * weights[key], 2) for val in acc_list]
+        CF_dict[key] = weighted
+        print(f"{key:<7} : {weighted}")
+    return CF_dict
 
 print("__________CUTFLOW__________")        
-CF = Cutflow(Acc)
+CF = Cutflow(Acc, weights)
 
-print(" ")
-print("________SIGNIFICANCE________")
 
-# Significance # Modify! # 
-for i in range(0,5): # 5 Cuts + 1 No cut
-    print("Significance of ES :", i)
-    Significance = CF["tthh"][0][i]/np.sqrt(CF["tth"][0][i] + CF["ttbbh"][0][i] + CF["ttzh"][0][i] + CF["ttvv"][0][i] + CF["ttbbv"][0][i] +CF["ttbb"][0][i] + CF["ttbbbb"][0][i] + CF["tttt"][0][i]+CF["tt"][0][i])
-    print("Significance: {:.2f}".format(Significance))
+print("\n________SIGNIFICANCE________")
+
+for i in range(0, 5):  # 5 Cuts
+    print(f"Significance after Cut {i}:")
+
+    S = CF["tthh"][i]
+    B = (CF["tth"][i] + CF["ttbbh"][i] + CF["ttzh"][i] +
+         CF["ttvv"][i] + CF["ttbbv"][i] + CF["ttbb"][i] +
+         CF["tttt"][i] + CF["ttw"][i])
+
+    if B > 0:
+        significance = S / np.sqrt(B)
+        print(f"Significance: {significance:.3f}")
+    else:
+        print("Significance: - (Background is 0)")
     print("----Done----")
-
