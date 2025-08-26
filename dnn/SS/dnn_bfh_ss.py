@@ -38,7 +38,7 @@ class TeeLogger(object):
 # I/O 설정
 # ===========================
 infile = "./skimmed/b_train/tthh_btrain.root"
-outdir = "./dnn_result/bfh_ss_0820/"
+outdir = "./dnn_result/bfh_ss_0825/"
 os.makedirs(outdir, exist_ok=True)
 class_names = ["Label 1", "Label 2", "Label 3", "Label 4", "Label 5", "Label 6"]
 

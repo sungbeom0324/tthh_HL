@@ -131,7 +131,7 @@ x_bCat  = np.array(df_total.filter(items = input_1))
 #               bJet Classification               #
 ###################################################
 # Load b-tagger model.
-bfh_dir = "dnn_result/bfh_ss_0820/best_model.h5"
+bfh_dir = "dnn_result/bfh_ss_0825/best_model.h5"
 bfh_model = tf.keras.models.load_model(bfh_dir)
 
 # Predict bJet origin.
@@ -152,7 +152,7 @@ df_total["twist_angle"] = df_total.apply(twist_angle_from_row, axis=1)
 #                Event classification                #
 ######################################################
 # Import pre-trained DNN model
-dnn_dir = "/home/stiger97/github/tthh/dnn_result/ss2l_4Cat_0820/best_model.h5"
+dnn_dir = "/home/stiger97/github/tthh/dnn_result/ss2l_4Cat_0825/best_model.h5"
 dnn_model = tf.keras.models.load_model(dnn_dir)
 dnn_model.summary()
 

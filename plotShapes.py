@@ -140,7 +140,7 @@ plotShape(
     branch="G1",
     PRE="Test",
     outtag="ShapeStack",
-    signal_weight=200,
+    signal_weight=195,
     yscale=1.4
 )
 
@@ -153,7 +153,7 @@ plotShape(
     branch="G2",
     PRE="Test",
     outtag="ShapeStack",
-    signal_weight=1455,
+    signal_weight=1438,
     yscale=1.4
 )
 
@@ -166,7 +166,7 @@ plotShape(
     branch="G3",
     PRE="Test",
     outtag="ShapeStack",
-    signal_weight=1140,
+    signal_weight=1106,
     yscale=1.4
 )
 
@@ -179,6 +179,6 @@ plotShape(
     branch="G4",
     PRE="Test",
     outtag="ShapeStack",
-    signal_weight=480,
+    signal_weight=464,
     yscale=1.4
 )

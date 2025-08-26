@@ -19,7 +19,7 @@ draw2DMatrix_HH_vs_TopDecay_norm(
 
 # S0~3
 #drawHistoSame(indir, tree, "Lep_size", "Number of leptons", "Normalized Events", "Lep_size", 5, 0, 5, PRE, "S0", yscale=1.3)
-#drawHistoSame(indir, tree, "SS_OS_DL", "Electric charges of a lepton pair", "Normalzied Events", "SS_OS_DL", 5, -2, 3, PRE, "S1", yscale=1.3)
+drawHistoSame(indir, tree, "SS_OS_DL", "Electric charges of a lepton pair", "Normalzied Events", "SS_OS_DL", 5, -2, 3, PRE, "S1", yscale=1.3)
 #drawHistoSame(indir, tree, "MET_E", "E^{Miss}_{T} (GeV)", "Normalized Events", "MET_E", 30, 0, 300, PRE, "S2", yscale=1.3)
 #drawHistoSame(indir, tree, "Jet_size", "Number of jets", "Normalzied Events", "Jet_size", 15, 0, 15, PRE, "S3", yscale=1.3)
 #drawHistoSame(indir, tree, "bJet_size", "Number of bjets", "Normalized Events", "bJet_size", 10, 0, 10, PRE, "S3", yscale=1.3)
@@ -92,14 +92,12 @@ drawHistoSame(indir, tree, "JetAK8_size", "JetAK8_size", "Normalized Events", "J
 ###### Single ########
 infile = "/home/stiger97/github/tthh/result_4Cat_DRAFT/score.root"
 #####################
-'''
-drawHistoSame_SingleFile(infile, tree, "Higgs Mass","Higgs p_{T} (GeV)", "Normalized Events", "higgs_pt", 80, 0, 800, PRE, "S4", normalize=True, yscale=1.3)
-drawHistoSame_SingleFile(infile, tree, "Higgs Mass","Higgs \eta_{h}", "Normalized Events", "higgs_eta", 30, -3, 3, PRE, "S4", normalize=True, yscale=1.3)
-drawHistoSame_SingleFile(infile, tree, "Higgs Mass","Higgs m_{h} (GeV)", "Normalized Events", "higgs_mass", 30, 0, 300, PRE, "S4", normalize=True, yscale=1.3)
-drawHistoSame_SingleFile(infile, tree, "bfh_dr", "\DeltaR^{bfh}_{bb}", "Mormalized Events" ,"bfh_dr", 16, 0, 4, PRE, "S4", normalize=True, yscale=1.3)
-drawHistoSame_SingleFile(infile, tree, "bfh_Ht", "H^{bfh}_{T} (GeV)", "Mormalized Events" ,"bfh_Ht", 35, 0, 700, PRE, "S4", normalize=True, yscale=1.3)
-drawHistoSame_SingleFile(infile, tree, "bfh_dEta", "\Delta\eta_{bfh}", "Mormalized Events" ,"bfh_dEta", 30, 0, 3, PRE, "S4", normalize=True, yscale=1.3)
-drawHistoSame_SingleFile(infile, tree, "bfh_dPhi", "\Delta\phi_{bfh}", "Mormalized Events" ,"bfh_dPhi", 35, 0, 3.5, PRE, "S4", normalize=True, yscale=1.3)
-'''
+#drawHistoSame_SingleFile(infile, tree, "Higgs Mass","Higgs p_{T} (GeV)", "Normalized Events", "higgs_pt", 80, 0, 800, PRE, "S4", normalize=True, yscale=1.3)
+#drawHistoSame_SingleFile(infile, tree, "Higgs Mass","Higgs \eta_{h}", "Normalized Events", "higgs_eta", 30, -3, 3, PRE, "S4", normalize=True, yscale=1.3)
+#drawHistoSame_SingleFile(infile, tree, "Higgs Mass","Higgs m_{h} (GeV)", "Normalized Events", "higgs_mass", 30, 0, 300, PRE, "S4", normalize=True, yscale=1.3)
+#drawHistoSame_SingleFile(infile, tree, "bfh_dr", "\DeltaR^{bfh}_{bb}", "Mormalized Events" ,"bfh_dr", 16, 0, 4, PRE, "S4", normalize=True, yscale=1.3)
+#drawHistoSame_SingleFile(infile, tree, "bfh_Ht", "H^{bfh}_{T} (GeV)", "Mormalized Events" ,"bfh_Ht", 35, 0, 700, PRE, "S4", normalize=True, yscale=1.3)
+#drawHistoSame_SingleFile(infile, tree, "bfh_dEta", "\Delta\eta_{bfh}", "Mormalized Events" ,"bfh_dEta", 30, 0, 3, PRE, "S4", normalize=True, yscale=1.3)
+#drawHistoSame_SingleFile(infile, tree, "bfh_dPhi", "\Delta\phi_{bfh}", "Mormalized Events" ,"bfh_dPhi", 35, 0, 3.5, PRE, "S4", normalize=True, yscale=1.3)
 ##################################################
 

@@ -40,7 +40,7 @@ class TeeLogger(object):
 # ===========================
 indir = "./skimmed/train/"
 PRE = "ss2l"
-outdir = "./dnn_result/" + PRE + "_4Cat_0820"
+outdir = "./dnn_result/" + PRE + "_4Cat_0825"
 os.makedirs(outdir, exist_ok=True)
 
 log_path = os.path.join(outdir, "train_log.txt")
@@ -186,7 +186,7 @@ print(df_merged["process"].value_counts())
 print("# bJet Classification")
 x_bCat = np.array(df_merged.filter(items=input_1))
 
-bfh_model = tf.keras.models.load_model("dnn_result/bfh_ss_0820/best_model.h5")
+bfh_model = tf.keras.models.load_model("dnn_result/bfh_ss_0825/best_model.h5")
 
 _pred_bfh = bfh_model.predict(x_bCat)
 pred_bfh = np.argmax(_pred_bfh, axis=1)

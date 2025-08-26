@@ -1,0 +1,7 @@
+# .gitignore 파일에 추가
+result_4Cat_DRAFT/
+skimmed/
+plots/
+dnn_result/
+myShapes_4Cat.root
+temp.sh

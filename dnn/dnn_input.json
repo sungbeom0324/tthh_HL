@@ -23,6 +23,7 @@
 
         "Lep1_pt", "Lep1_eta", "Lep1_phi", 
         "Lep2_pt", "Lep2_eta", "Lep2_phi",
+        "l1l2_dr",
         "l1b1_dr", "l1b2_dr", "l1b3_dr", "l1b4_dr",
         "l2b1_dr", "l2b2_dr", "l2b3_dr", "l2b4_dr"
     ],
@@ -46,6 +47,7 @@
 
         "Lep1_pt", "Lep1_eta", "Lep1_phi", 
         "Lep2_pt", "Lep2_eta", "Lep2_phi",
+        "l1l2_dr",
         "l1b1_dr", "l1b2_dr", "l1b3_dr", "l1b4_dr",
         "l2b1_dr", "l2b2_dr", "l2b3_dr", "l2b4_dr",
 
