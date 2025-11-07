@@ -1,7 +1,7 @@
 #### This repository contains analysis codes for TTHH @HL-LHC.
 
 ___
-Institution : Hanyang University in Seoul, Korea. <br>
+Institution : Korea University in Seoul, Korea. <br>
 Author : Sungbeom Cho (sucho@cern.ch) <br>
 Requirements : ROOT, rDataFrame, pyroot, python, c++.<br>
 
