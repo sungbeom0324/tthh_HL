@@ -15,7 +15,13 @@ PROCESS_FILES = {
     "tttt": "_tttt.root",
     "ttbbH": "_ttbbh.root",
     "ttVV": "_ttvv.root",
-    "ttZH": "_ttzh.root"
+    "ttZH": "_ttzh.root",
+
+    "ttHH_fastjet_HYUcard" : "fj_tthh.root",
+    "ttHH_fjcore_HYUcard" : "fjcore_tthh.root",
+    "ttHH_fastjet_CMScard" : "fjCMS_tthh.root",
+    "ttHH_fjcore_CMScard" : "fjcoreCMS_tthh.root",
+    "ttHH_fastjet_HYUcard_AA0" : "fj_AA0_tthh.root",
 }
 
 PROCESS_FILTERS = {
@@ -39,7 +45,13 @@ PROCESS_LABELS = {
     "tttt": "t\\bar{t}t\\bar{t}",
     "ttbbH": "t\\bar{t}b\\bar{b}H",
     "ttZH": "t\\bar{t}ZH",
-    "ttVV": "t\\bar{t}VV"
+    "ttVV": "t\\bar{t}VV",
+
+    "ttHH_fastjet_HYUcard" : "fastjet_HYU",
+    "ttHH_fjcore_HYUcard" : "fjcore_HYU",
+    "ttHH_fastjet_CMScard" : "fastjet_CMS",
+    "ttHH_fjcore_CMScard" : "fjcore_CMS",
+    "ttHH_fastjet_HYUcard_AA0" : "fastjet_HYU_AA0"
 }
 
 PROCESS_COLORS = {
@@ -52,7 +64,13 @@ PROCESS_COLORS = {
     "ttZH":  14, 
     "ttVV":  41,  
     "ttbbV": ROOT.TColor.GetColor("#c184c1"), 
-    "ttbbbb": 9
+    "ttbbbb": 9,
+
+    "ttHH_fastjet_HYUcard" : ROOT.kBlue,
+    "ttHH_fjcore_HYUcard" : ROOT.kGreen,
+    "ttHH_fastjet_CMScard" : ROOT.kRed,
+    "ttHH_fjcore_CMScard" : ROOT.kOrange,
+    "ttHH_fastjet_HYUcard_AA0" : ROOT.kBlack
 }
 
 GROUPS = {
@@ -85,12 +103,18 @@ XSEC_S0 = { # No selection
     "tttt": 17.0,
     "ttbbH": 8.471,
     "ttVV": 13.49,
-    "ttZH": 1.55
+    "ttZH": 1.55,
+
+    "ttHH_fastjet_HYUcard" : 0.9,
+    "ttHH_fjcore_HYUcard" : 0.9,
+    "ttHH_fastjet_CMScard" : 0.9,
+    "ttHH_fjcore_CMScard" : 0.9,
+    "ttHH_fastjet_HYUcard_AA0" : 0.9
 }
 
 SELECTIONS = {
     "S0": {
-        "cut": "Lep_size >= -1",
+        "cut": "Jet_size >= -1",
         "xsec": XSEC_S0,
     },
     "S1": {
@@ -215,7 +239,7 @@ def saveCanvas(canvas, outdir, PRE, branch, title, tail=""):
     ROOT.gStyle.SetPadTickX(1)
     ROOT.gStyle.SetPadTickY(1)
     title = title.replace(" ", "_")
-    filename = f"{outdir}{PRE}_{branch}{tail}.pdf"
+    filename = f"{outdir}{PRE}_{branch}{tail}.pdf" # Or .C
     canvas.SaveAs(filename)
     canvas.Clear()
 
@@ -393,6 +417,113 @@ def draw2DMatrix_HH_vs_TopDecay_norm(infile, tree, xtitle, ytitle, PRE, tag,
 
     return h2_flip
 
+def drawHistoSame_Val(indir, tree, title, xtitle, ytitle, branch,
+                  nbin, xmin, xmax, PRE, stage, yscale=1.3, normalize=True):
+
+    title = ""
+    outdir = f"./plots/Val/Same/{stage}/"
+    os.makedirs(outdir, exist_ok=True)
+
+    selection_criteria = SELECTIONS[stage]["cut"]
+    XSEC = XSEC_S0  # selection efficiency 안 곱한 원래 cross section
+    lumi = 3000
+
+    processes = ["ttHH_fastjet_HYUcard", "ttHH_fjcore_HYUcard", "ttHH_fastjet_CMScard", "ttHH_fjcore_CMScard", "ttHH_fastjet_HYUcard_AA0"]
+
+    dfs = {}
+    for proc in processes:
+        file_path = indir + PRE + "_" + PROCESS_FILES[proc]
+        print(file_path)
+
+        # (1) 전체 이벤트 수 기준 weight
+        total_events = ROOT.RDataFrame(tree, file_path).Count().GetValue()
+        if total_events == 0:
+            print(f"[WARNING] {proc} has 0 events in total.")
+            continue
+
+        xsec = XSEC[proc]
+        weight_expr = f"({xsec} * {lumi}) / {total_events}"
+
+        # (2) weight 정의 -> selection 적용
+        df = ROOT.RDataFrame(tree, file_path)
+        df = df.Define("weight", weight_expr)
+        df = df.Filter(selection_criteria)
+
+        dfs[proc] = df
+
+    # Style
+    ROOT.gStyle.SetPadTickX(1)
+    ROOT.gStyle.SetPadTickY(1)
+    ROOT.gStyle.SetOptStat(0)
+
+    legs = PROCESS_LABELS
+    colors = PROCESS_COLORS
+
+    canvas = createCanvas()
+    # coords : x_min, x_max, y_min, y_max
+    legend = createLegend(coords=(0.20, 0.87, 0.87, 0.72), text_size=0.03, entry_sep=0.15, border=0, n_columns=2)
+
+    ymax = 0
+    bkg_hists = {}
+    sig_hist = None
+
+    for proc, df in dfs.items():
+        h = df.Histo1D(
+            ROOT.RDF.TH1DModel(f"h_{proc}", title, nbin, xmin, xmax),
+            branch,
+            "weight"
+        )
+
+        # (3) normalize 플래그 -> 분포만 비교 (unit area)
+        if normalize:
+            integral = h.Integral()
+            if integral != 0:
+                h.Scale(1.0 / integral)
+
+        if ymax < h.GetMaximum():
+            ymax = h.GetMaximum()
+
+        setHistStyle(h, xtitle, ytitle,
+                     xtitle_size=0.04, ytitle_size=0.05,
+                     xoff=1.0, yoff=1.3)
+
+        xaxis = h.GetXaxis()
+        #xaxis.SetBinLabel(xaxis.FindBin(-1), "OS") # Only for SS_OS_DL
+        #xaxis.SetBinLabel(xaxis.FindBin( 1), "SS") # Only for SS_OS_DL
+        xaxis.SetLabelSize(0.05)
+        #xaxis.CenterLabels(True) # Only for SS_OS_DL
+        #h.GetXaxis().SetNdivisions(505) # Show integer ticks only.
+
+
+        h.SetLineColor(colors[proc])
+
+        if proc == "ttHH":
+            h.SetLineStyle(1)
+            h.SetLineWidth(4)
+            sig_hist = h
+        else:
+            h.SetLineStyle(1)
+            h.SetLineWidth(3)
+            bkg_hists[proc] = h
+
+    # Draw
+    first = True
+    for name, h in bkg_hists.items():
+        h.SetMaximum(ymax * yscale)
+        h.Draw("hist" if first else "hist same")
+        first = False
+        legend.AddEntry(h.GetValue(), " " + legs[name], "f")
+
+    if sig_hist:
+        sig_hist.SetMaximum(ymax * yscale)
+        sig_hist.Draw("hist same")
+        legend.AddEntry(sig_hist.GetValue(), " " + legs["ttHH"], "f")
+
+    legend.Draw()
+    drawTextLabels()
+
+    tail = "_norm" if normalize else "_real"
+    saveCanvas(canvas, outdir, PRE, branch, title, tail=tail)
 
 def drawHistoSame(indir, tree, title, xtitle, ytitle, branch,
                   nbin, xmin, xmax, PRE, stage, yscale=1.3, normalize=True):
